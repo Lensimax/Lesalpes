@@ -66,9 +66,22 @@ void enableNoiseShader(){
 
 void Viewer::paintGL() {
 
+    glViewport(0,0,width(),height());
 
+    /* On active le shader pour générer le bruit */
+    glUseProgram(_noiseShader->id());
 
+    /* on clear les buffers */ 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* on dessine la grille */
+    glBindVertexArray(_vaoTerrain);
+    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
+
+    /* On desactive le shader actif */
+    glUseProgram(0);
 }
+
 
 
 void Viewer::initializeGL() {
@@ -101,6 +114,8 @@ void Viewer::createShaders(){
     _noiseShader = new Shader();
     _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
 }
+
+/* Destruction shader */
 
 void Viewer::deleteShaders() {
   delete _noiseShader; _noiseShader = NULL;
