@@ -22,6 +22,7 @@
 #include <stack>
 
 #include "grid.h"
+#include "shader.h"
 
 class Viewer : public QGLWidget {
  public:
@@ -35,8 +36,12 @@ class Viewer : public QGLWidget {
     virtual void keyPressEvent(QKeyEvent *ke);
     virtual void mousePressEvent(QMouseEvent *me);
     virtual void mouseMoveEvent(QMouseEvent *me);
+
     void createVAO();
     void deleteVAO();
+
+    void createShaders();
+    void deleteShaders();
 
  private:
 
@@ -46,6 +51,8 @@ class Viewer : public QGLWidget {
     GLuint _vaoQuad;
     GLuint _terrain[2];
     GLuint _quad;
+
+    Shader *_noiseShader;
 
     QTimer *_timer;    // timer that controls the animation
   

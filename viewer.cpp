@@ -59,9 +59,14 @@ void Viewer::deleteVAO() {
     glDeleteVertexArrays(1,&_vaoQuad);
 }
 
+void enableNoiseShader(){
+
+}
 
 
 void Viewer::paintGL() {
+
+
 
 }
 
@@ -90,7 +95,16 @@ void Viewer::initializeGL() {
     _timer->start();
 }
 
+/* Creation shader */
 
+void Viewer::createShaders(){
+    _noiseShader = new Shader();
+    _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
+}
+
+void Viewer::deleteShaders() {
+  delete _noiseShader; _noiseShader = NULL;
+}
 
 
 /* Handler graphique */
