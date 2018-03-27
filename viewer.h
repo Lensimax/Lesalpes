@@ -21,24 +21,33 @@
 #include <QTimer>
 #include <stack>
 
+#include "grid.h"
+
 class Viewer : public QGLWidget {
  public:
-  Viewer(const QGLFormat &format=QGLFormat::defaultFormat());
-  ~Viewer();
+    Viewer(const QGLFormat &format=QGLFormat::defaultFormat());
+    ~Viewer();
   
  protected :
-  virtual void paintGL();
-  virtual void initializeGL();
-  virtual void resizeGL(int width,int height);
-  virtual void keyPressEvent(QKeyEvent *ke);
-  virtual void mousePressEvent(QMouseEvent *me);
-  virtual void mouseMoveEvent(QMouseEvent *me);
+    virtual void paintGL();
+    virtual void initializeGL();
+    virtual void resizeGL(int width,int height);
+    virtual void keyPressEvent(QKeyEvent *ke);
+    virtual void mousePressEvent(QMouseEvent *me);
+    virtual void mouseMoveEvent(QMouseEvent *me);
+    void createVAO();
+    void deleteVAO();
 
  private:
 
+    Grid *_grid; // notre grille avec le terrain
 
+    GLuint _vaoTerrain;
+    GLuint _vaoQuad;
+    GLuint _terrain[2];
+    GLuint _quad;
 
-  QTimer        *_timer;    // timer that controls the animation
+    QTimer *_timer;    // timer that controls the animation
   
 };
 
