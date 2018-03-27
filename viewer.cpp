@@ -7,7 +7,7 @@
 using namespace std;
 
 
-Viewer::Viewer(char *filename,const QGLFormat &format)
+Viewer::Viewer(const QGLFormat &format)
   : QGLWidget(format)
     {
 
