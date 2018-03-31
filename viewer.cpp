@@ -6,6 +6,9 @@
 
 using namespace std;
 
+/* taille d'un ligne de la grille */
+const unsigned int GRID_SIZE = 1024;
+
 
 Viewer::Viewer(const QGLFormat &format)
   : QGLWidget(format), _timer(new QTimer(this))
@@ -15,7 +18,7 @@ Viewer::Viewer(const QGLFormat &format)
 
     _noiseDebug = false;
 
-    _grid = new Grid(1024,-1.0f, 1.0f);
+    _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
 
     _timer->setInterval(10);
@@ -25,6 +28,7 @@ Viewer::Viewer(const QGLFormat &format)
 Viewer::~Viewer() {
     deleteVAO();
     deleteShaders();
+    deleteFBO();
 }
 
 
@@ -62,9 +66,7 @@ void Viewer::deleteVAO() {
     glDeleteVertexArrays(1,&_vaoQuad);
 }
 
-void enableNoiseShader(){
 
-}
 
 void Viewer::drawGrid(GLuint id){
 
@@ -76,6 +78,51 @@ void Viewer::drawGrid(GLuint id){
     glBindVertexArray(_vaoTerrain);
     glDrawElements(GL_TRIANGLES,3*_grid->nbVertices(),GL_UNSIGNED_INT,(void *)0);
 
+    /* on desactive le vertex array */
+    glBindVertexArray(0);
+
+}
+
+void Viewer::drawNoiseMap(GLuint id){
+    /* active la texture */
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_perlinTexture);
+    glUniform1i(glGetUniformLocation(_debugNoise->id(),"noiseMap"),0);
+
+    /* Dessine le carré */
+    glBindVertexArray(_vaoQuad);
+    glDrawArrays(GL_TRIANGLES,0,6);
+
+    /* desactive le vertex array */
+    glBindVertexArray(0);
+}
+
+void Viewer::drawQuad(){
+    glBindVertexArray(_vaoQuad);
+    glDrawArrays(GL_TRIANGLES,0,6);
+    glBindVertexArray(0);
+}
+
+void Viewer::computePerlinNoise(GLuint id){
+    /* on active le FBO pour créer la texturea de bruit de Perlin et 
+    la texture de normal */
+    glBindFramebuffer(GL_FRAMEBUFFER,_fbo);
+
+    /* on active le shader du bruit de Perlin */
+    glUseProgram(id);
+
+    /* on indique quelles textures on veut tracer */
+    GLenum bufferlist [] = {GL_COLOR_ATTACHMENT0};
+    glDrawBuffers(1,bufferlist);
+
+    /* on clear les buffers */ 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* on dessine le carré */
+    drawQuad();
+
+    /* desactive le FBO */
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 
@@ -83,15 +130,27 @@ void Viewer::paintGL() {
 
     glViewport(0,0,width(),height());
 
-    /* On active le shader pour générer le bruit */
+    
+    computePerlinNoise(_noiseShader->id());
+
+    
+    /* On active le shader pour afficher la grille */
     glUseProgram(_gridShader->id());
 
-    /* on clear les buffers */ 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawGrid(_gridShader->id());
 
-    
+
+    /* affichage de la noise map */
+    if(_noiseDebug){
+
+        glUseProgram(_debugNoise->id());
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        drawNoiseMap(_debugNoise->id());
+    }    
 
 
     /* On desactive le shader actif */
@@ -116,9 +175,14 @@ void Viewer::initializeGL() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
     glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+    glViewport(0,0,width(),height());
 
     createShaders();
     createVAO();
+
+    /* Crée et initialize le FBO */
+    createFBO();
+    initFBO();
 
     /* creation des matrices: Modele, Vue, Projection */
 
@@ -145,6 +209,8 @@ void Viewer::createShaders(){
     _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
     _gridShader = new Shader();
     _gridShader->load("shaders/grid.vert","shaders/grid.frag");
+    _debugNoise = new Shader();
+    _debugNoise->load("shaders/debugNoise.vert","shaders/debugNoise.frag");
 }
 
 /* Destruction shader */
@@ -152,6 +218,45 @@ void Viewer::createShaders(){
 void Viewer::deleteShaders() {
   delete _noiseShader; _noiseShader = NULL;
   delete _gridShader; _gridShader = NULL;
+  delete _debugNoise; _debugNoise = NULL;
+}
+
+/* Create FBO */
+
+void Viewer::createFBO(){
+    int nbFBO = 1;
+
+    glGenFramebuffers(nbFBO, &_fbo);
+    glGenTextures(1,&_perlinTexture);
+}
+
+void Viewer::initFBO(){
+
+    /* creation des textures */
+
+    /* creation de la texture avec le bruit de Perlin */
+    /* la taille est égale au nombre de cases de la grille */
+    glBindTexture(GL_TEXTURE_2D,_perlinTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    /* on active le frameBufferObject */
+    /* pour associer les textures */
+    glBindFramebuffer(GL_FRAMEBUFFER,_fbo);
+
+    glBindTexture(GL_TEXTURE_2D,_perlinTexture);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_perlinTexture,0);
+
+    /* on desactive le buffer */
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void Viewer::deleteFBO(){
+  glDeleteFramebuffers(1,&_fbo);
+  glDeleteTextures(1,&_perlinTexture);
 }
 
 
@@ -160,6 +265,7 @@ void Viewer::deleteShaders() {
 
 void Viewer::resizeGL(int width,int height) {
     glViewport(0,0,width,height);
+    initFBO();
     updateGL();
 }
 
@@ -191,6 +297,10 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
         _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
         _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
 
+    }
+
+    if(ke->key()==Qt::Key_N){
+        _noiseDebug = !_noiseDebug;
     }
 
 

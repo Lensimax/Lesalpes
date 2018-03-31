@@ -4,6 +4,8 @@ in vec2 pos;
 
 out vec4 outBuffer;
 
+layout(location = 0) out vec4 outBuffer1;
+
 vec2 hash(vec2 p) {
     p = vec2( dot(p,vec2(127.1,311.7)),
         dot(p,vec2(269.5,183.3)) );
@@ -43,4 +45,8 @@ void main() {
     float p = pnoise(pos+motion.xy,2.0,4.0,0.5,10)+motion.z;
 
     outBuffer = vec4(p*0.5+0.5);
+    // outBuffer = vec4(1.0, 0.0,0.0,1.0);
+
+    outBuffer1 = outBuffer;
+
 }

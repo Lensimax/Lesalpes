@@ -43,9 +43,17 @@ class Viewer : public QGLWidget {
     void createShaders();
     void deleteShaders();
 
+    void createFBO();
+    void initFBO();
+    void deleteFBO();
+
  private:
 
     void drawGrid(GLuint id);
+    void drawNoiseMap(GLuint id);
+    void drawQuad();
+    void computePerlinNoise(GLuint id);
+
 
     bool _noiseDebug;
 
@@ -56,12 +64,20 @@ class Viewer : public QGLWidget {
     GLuint _terrain[2];
     GLuint _quad;
 
+    GLuint _fbo;
+
+    /* Texture created */
+    GLuint _perlinTexture;
+
     Shader *_noiseShader;
     Shader *_gridShader;
 
     glm::mat4 _modelMat;
     glm::mat4 _viewMat;
     glm::mat4 _projMat;
+
+    /* Debug shader */
+    Shader *_debugNoise;
 
 
     QTimer *_timer;    // timer that controls the animation
