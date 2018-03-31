@@ -45,6 +45,10 @@ class Viewer : public QGLWidget {
 
  private:
 
+    void drawGrid(GLuint id);
+
+    bool _noiseDebug;
+
     Grid *_grid; // notre grille avec le terrain
 
     GLuint _vaoTerrain;
@@ -53,6 +57,12 @@ class Viewer : public QGLWidget {
     GLuint _quad;
 
     Shader *_noiseShader;
+    Shader *_gridShader;
+
+    glm::mat4 _modelMat;
+    glm::mat4 _viewMat;
+    glm::mat4 _projMat;
+
 
     QTimer *_timer;    // timer that controls the animation
   

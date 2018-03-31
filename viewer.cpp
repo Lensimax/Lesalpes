@@ -8,20 +8,23 @@ using namespace std;
 
 
 Viewer::Viewer(const QGLFormat &format)
-  : QGLWidget(format)
+  : QGLWidget(format), _timer(new QTimer(this))
     {
 
-    _timer = new QTimer(this);
+    setlocale(LC_ALL,"C");
+
+    _noiseDebug = false;
+
+    _grid = new Grid(1024,-1.0f, 1.0f);
+
 
     _timer->setInterval(10);
-
-
-
     connect(_timer,SIGNAL(timeout()),this,SLOT(updateGL()));
 }
 
 Viewer::~Viewer() {
     deleteVAO();
+    deleteShaders();
 }
 
 
@@ -63,20 +66,33 @@ void enableNoiseShader(){
 
 }
 
+void Viewer::drawGrid(GLuint id){
+
+    glUniformMatrix4fv(glGetUniformLocation(id,"modelMat"),1,GL_FALSE,&(_modelMat[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"viewMat"),1,GL_FALSE,&(_viewMat[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_projMat[0][0]));
+
+    /* on dessine la grille */
+    glBindVertexArray(_vaoTerrain);
+    glDrawElements(GL_TRIANGLES,3*_grid->nbVertices(),GL_UNSIGNED_INT,(void *)0);
+
+}
+
 
 void Viewer::paintGL() {
 
     glViewport(0,0,width(),height());
 
     /* On active le shader pour générer le bruit */
-    glUseProgram(_noiseShader->id());
+    glUseProgram(_gridShader->id());
 
     /* on clear les buffers */ 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    /* on dessine la grille */
-    glBindVertexArray(_vaoTerrain);
-    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
+    drawGrid(_gridShader->id());
+
+    
+
 
     /* On desactive le shader actif */
     glUseProgram(0);
@@ -100,9 +116,23 @@ void Viewer::initializeGL() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
     glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-    glViewport(0,0,width(),height());
 
+    createShaders();
     createVAO();
+
+    /* creation des matrices: Modele, Vue, Projection */
+
+    float fovy = 45.0;
+    float aspect = width()/height();
+    float near = 0.1;
+    float far = 100;
+
+
+    _modelMat = glm::mat4(1.0f);
+    _viewMat = glm::mat4(1.0f);
+    _projMat = glm::mat4(1.0f);
+    _viewMat = glm::lookAt(glm::vec3(0.0,0.0,5.0) ,glm::vec3(0.0,0.0,0.0), glm::vec3(0.0,1.0,1.0)); 
+    _projMat = glm::perspective(fovy, aspect, near, far);
 
     // starts the timer 
     _timer->start();
@@ -113,12 +143,15 @@ void Viewer::initializeGL() {
 void Viewer::createShaders(){
     _noiseShader = new Shader();
     _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
+    _gridShader = new Shader();
+    _gridShader->load("shaders/grid.vert","shaders/grid.frag");
 }
 
 /* Destruction shader */
 
 void Viewer::deleteShaders() {
   delete _noiseShader; _noiseShader = NULL;
+  delete _gridShader; _gridShader = NULL;
 }
 
 
@@ -151,6 +184,13 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
       _timer->stop();
     else 
       _timer->start();
+    }
+
+    // key r: reload shaders 
+    if(ke->key()==Qt::Key_R) {
+        _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
+        _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
+
     }
 
 

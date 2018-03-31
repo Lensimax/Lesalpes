@@ -8,5 +8,5 @@ out vec2 pos;
 void main() {
 	// no need for any particular transformation (Identity matrices)
 	pos = position.xy*0.5+0.5;
-gl_Position = vec4(position,1);
+	gl_Position = vec4(position,1);
 }
