@@ -27,8 +27,13 @@ Viewer::Viewer(const QGLFormat &format)
 
 Viewer::~Viewer() {
     deleteVAO();
+<<<<<<< HEAD
     deleteShaders();
     deleteFBO();
+=======
+    delete _timer;
+
+>>>>>>> 42cec4fbdf9944884653ebf8e8b70970a8d5908c
 }
 
 
@@ -155,6 +160,7 @@ void Viewer::paintGL() {
 
     /* On desactive le shader actif */
     glUseProgram(0);
+    glBindVertexArray(0);
 }
 
 
@@ -162,6 +168,8 @@ void Viewer::paintGL() {
 void Viewer::initializeGL() {
     // make this window the current one
     makeCurrent();
+
+    _grid = new Grid(8, 0.0, 5.0);
 
     // init and chack glew
     glewExperimental = GL_TRUE;

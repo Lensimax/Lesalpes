@@ -19,7 +19,7 @@ int main(int argc,char** argv) {
 
   Viewer viewer(fmt);
 
-  viewer.setWindowTitle("Exercice 08 - Shadows");
+  viewer.setWindowTitle("Project - Les Alpes");
   viewer.show();
   
   return application.exec();
