@@ -161,7 +161,7 @@ void Viewer::paintGL() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        drawDebugMap(_debugNormal->id(), _perlinMap, "noiseMap");
+        drawDebugMap(_debugNormal->id(), _normalMap, "normalMap");
     } 
 
 
@@ -246,7 +246,8 @@ void Viewer::createFBO(){
 
     glGenFramebuffers(nbFBO, &_fbo);
     glGenTextures(1,&_perlinMap);
-    
+    glGenTextures(1,&_normalMap);
+
 }
 
 void Viewer::initFBO(){
@@ -262,12 +263,22 @@ void Viewer::initFBO(){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+    glBindTexture(GL_TEXTURE_2D,_normalMap);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     /* on active le frameBufferObject */
     /* pour associer les textures */
     glBindFramebuffer(GL_FRAMEBUFFER,_fbo);
 
     glBindTexture(GL_TEXTURE_2D,_perlinMap);
     glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_perlinMap,0);
+
+    glBindTexture(GL_TEXTURE_2D,_normalMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,_normalMap,0);
 
     /* on desactive le buffer */
     glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -276,6 +287,7 @@ void Viewer::initFBO(){
 void Viewer::deleteFBO(){
   glDeleteFramebuffers(1,&_fbo);
   glDeleteTextures(1,&_perlinMap);
+  glDeleteTextures(1,&_normalMap);
 }
 
 
