@@ -50,12 +50,12 @@ class Viewer : public QGLWidget {
  private:
 
     void drawGrid(GLuint id);
-    void drawNoiseMap(GLuint id);
+    void drawDebugMap(GLuint id, GLuint idTexture, char *shaderName);
     void drawQuad();
     void computePerlinNoise(GLuint id);
 
 
-    bool _noiseDebug;
+    
 
     Grid *_grid; // notre grille avec le terrain
 
@@ -78,6 +78,10 @@ class Viewer : public QGLWidget {
 
     /* Debug shader */
     Shader *_debugNoise;
+    Shader *_debugNormal;
+
+    bool _noiseDebug;
+    bool _normalDebug;
 
 
     QTimer *_timer;    // timer that controls the animation

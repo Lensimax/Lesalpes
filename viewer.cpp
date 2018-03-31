@@ -17,6 +17,7 @@ Viewer::Viewer(const QGLFormat &format)
     setlocale(LC_ALL,"C");
 
     _noiseDebug = false;
+    _normalDebug = false;
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
@@ -84,11 +85,11 @@ void Viewer::drawGrid(GLuint id){
 
 }
 
-void Viewer::drawNoiseMap(GLuint id){
+void Viewer::drawDebugMap(GLuint id, GLuint idTexture, char *shaderName){
     /* active la texture */
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,_perlinTexture);
-    glUniform1i(glGetUniformLocation(_debugNoise->id(),"noiseMap"),0);
+    glBindTexture(GL_TEXTURE_2D,idTexture);
+    glUniform1i(glGetUniformLocation(id,shaderName),0);
 
     /* Dessine le carré */
     glBindVertexArray(_vaoQuad);
@@ -150,8 +151,18 @@ void Viewer::paintGL() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        drawNoiseMap(_debugNoise->id());
+        drawDebugMap(_debugNoise->id(), _perlinTexture, "noiseMap");
     }    
+
+    /* affichage de la normal map */
+    /*if(_noiseDebug){
+
+        glUseProgram(_debugNoise->id());
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // drawNoiseMap(_debugNoise->id());
+    }  */
 
 
     /* On desactive le shader actif */
@@ -215,6 +226,8 @@ void Viewer::createShaders(){
     _gridShader->load("shaders/grid.vert","shaders/grid.frag");
     _debugNoise = new Shader();
     _debugNoise->load("shaders/debugNoise.vert","shaders/debugNoise.frag");
+    _debugNormal = new Shader();
+    _debugNormal->load("shaders/debugNormal.vert","shaders/debugNormal.frag");
 }
 
 /* Destruction shader */
@@ -223,6 +236,7 @@ void Viewer::deleteShaders() {
   delete _noiseShader; _noiseShader = NULL;
   delete _gridShader; _gridShader = NULL;
   delete _debugNoise; _debugNoise = NULL;
+  delete _debugNormal; _debugNormal = NULL;
 }
 
 /* Create FBO */
@@ -303,8 +317,12 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
     }
 
-    if(ke->key()==Qt::Key_N){
+    if(ke->key()==Qt::Key_P){
         _noiseDebug = !_noiseDebug;
+    }
+
+    if(ke->key()==Qt::Key_N){
+        _normalDebug = !_normalDebug;
     }
 
 
