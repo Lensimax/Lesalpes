@@ -27,13 +27,9 @@ Viewer::Viewer(const QGLFormat &format)
 
 Viewer::~Viewer() {
     deleteVAO();
-<<<<<<< HEAD
     deleteShaders();
     deleteFBO();
-=======
     delete _timer;
-
->>>>>>> 42cec4fbdf9944884653ebf8e8b70970a8d5908c
 }
 
 
@@ -203,7 +199,7 @@ void Viewer::initializeGL() {
     _modelMat = glm::mat4(1.0f);
     _viewMat = glm::mat4(1.0f);
     _projMat = glm::mat4(1.0f);
-    _viewMat = glm::lookAt(glm::vec3(0.0,0.0,5.0) ,glm::vec3(0.0,0.0,0.0), glm::vec3(0.0,1.0,1.0)); 
+    _viewMat = glm::lookAt(glm::vec3(0.0,0.0,10.0) ,glm::vec3(0.0,0.0,0.0), glm::vec3(0.0,1.0,1.0)); 
     _projMat = glm::perspective(fovy, aspect, near, far);
 
     // starts the timer 
