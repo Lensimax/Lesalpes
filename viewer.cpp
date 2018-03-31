@@ -151,18 +151,18 @@ void Viewer::paintGL() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        drawDebugMap(_debugNoise->id(), _perlinTexture, "noiseMap");
+        drawDebugMap(_debugNoise->id(), _perlinMap, "noiseMap");
     }    
 
     /* affichage de la normal map */
-    /*if(_noiseDebug){
+    if(_normalDebug){
 
-        glUseProgram(_debugNoise->id());
+        glUseProgram(_debugNormal->id());
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // drawNoiseMap(_debugNoise->id());
-    }  */
+        drawDebugMap(_debugNormal->id(), _perlinMap, "noiseMap");
+    } 
 
 
     /* On desactive le shader actif */
@@ -245,7 +245,8 @@ void Viewer::createFBO(){
     int nbFBO = 1;
 
     glGenFramebuffers(nbFBO, &_fbo);
-    glGenTextures(1,&_perlinTexture);
+    glGenTextures(1,&_perlinMap);
+    
 }
 
 void Viewer::initFBO(){
@@ -254,7 +255,7 @@ void Viewer::initFBO(){
 
     /* creation de la texture avec le bruit de Perlin */
     /* la taille est égale au nombre de cases de la grille */
-    glBindTexture(GL_TEXTURE_2D,_perlinTexture);
+    glBindTexture(GL_TEXTURE_2D,_perlinMap);
     glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
@@ -265,8 +266,8 @@ void Viewer::initFBO(){
     /* pour associer les textures */
     glBindFramebuffer(GL_FRAMEBUFFER,_fbo);
 
-    glBindTexture(GL_TEXTURE_2D,_perlinTexture);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_perlinTexture,0);
+    glBindTexture(GL_TEXTURE_2D,_perlinMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_perlinMap,0);
 
     /* on desactive le buffer */
     glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -274,7 +275,7 @@ void Viewer::initFBO(){
 
 void Viewer::deleteFBO(){
   glDeleteFramebuffers(1,&_fbo);
-  glDeleteTextures(1,&_perlinTexture);
+  glDeleteTextures(1,&_perlinMap);
 }
 
 

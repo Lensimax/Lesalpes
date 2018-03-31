@@ -67,7 +67,7 @@ class Viewer : public QGLWidget {
     GLuint _fbo;
 
     /* Texture created */
-    GLuint _perlinTexture;
+    GLuint _perlinMap;
 
     Shader *_noiseShader;
     Shader *_gridShader;
