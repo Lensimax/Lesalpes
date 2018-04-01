@@ -53,6 +53,7 @@ class Viewer : public QGLWidget {
     void drawDebugMap(GLuint id, GLuint idTexture, char *shaderName);
     void drawQuad();
     void computePerlinNoise(GLuint id);
+    void computeNormalMap(GLuint id);
 
 
     
@@ -67,11 +68,12 @@ class Viewer : public QGLWidget {
     GLuint _fbo;
 
     /* Texture created */
-    GLuint _perlinMap;
+    GLuint _heightMap;
     GLuint _normalMap;
 
     Shader *_noiseShader;
     Shader *_gridShader;
+    Shader *_normalShader;
 
     glm::mat4 _modelMat;
     glm::mat4 _viewMat;

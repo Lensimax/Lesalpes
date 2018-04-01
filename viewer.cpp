@@ -72,9 +72,14 @@ void Viewer::deleteVAO() {
 
 void Viewer::drawGrid(GLuint id){
 
-    glUniformMatrix4fv(glGetUniformLocation(id,"modelMat"),1,GL_FALSE,&(_modelMat[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"smodelMat"),1,GL_FALSE,&(_modelMat[0][0]));
     glUniformMatrix4fv(glGetUniformLocation(id,"viewMat"),1,GL_FALSE,&(_viewMat[0][0]));
     glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_projMat[0][0]));
+
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glUniform1i(glGetUniformLocation(id, "heightmap"), 0);    
 
     /* on dessine la grille */
     glBindVertexArray(_vaoTerrain);
@@ -127,21 +132,46 @@ void Viewer::computePerlinNoise(GLuint id){
     glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
+void Viewer::computeNormalMap(GLuint id){
+    // glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+
+    glUseProgram(id);
+
+    // GLenum bufferlist [] = {GL_COLOR_ATTACHMENT1};
+    // glDrawBuffers(1,bufferlist);    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glUniform1i(glGetUniformLocation(id, "heightmap"), 0);
+
+    drawQuad();
+
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 
 void Viewer::paintGL() {
 
     glViewport(0,0,width(),height());
 
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
     
     computePerlinNoise(_noiseShader->id());
 
+    computeNormalMap(_normalShader->id());
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+
     
     /* On active le shader pour afficher la grille */
-    glUseProgram(_gridShader->id());
+    /*glUseProgram(_gridShader->id());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    drawGrid(_gridShader->id());
+    drawGrid(_gridShader->id());*/
 
 
     /* affichage de la noise map */
@@ -151,7 +181,7 @@ void Viewer::paintGL() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        drawDebugMap(_debugNoise->id(), _perlinMap, "noiseMap");
+        drawDebugMap(_debugNoise->id(), _heightMap, "noiseMap");
     }    
 
     /* affichage de la normal map */
@@ -210,7 +240,7 @@ void Viewer::initializeGL() {
     _modelMat = glm::mat4(1.0f);
     _viewMat = glm::mat4(1.0f);
     _projMat = glm::mat4(1.0f);
-    _viewMat = glm::lookAt(glm::vec3(0.0,0.0,10.0) ,glm::vec3(0.0,0.0,0.0), glm::vec3(0.0,1.0,1.0)); 
+    _viewMat = glm::lookAt(glm::vec3(2.0,0.0,10.0) ,glm::vec3(0.0,0.0,0.0), glm::vec3(0.0,1.0,0.0)); 
     _projMat = glm::perspective(fovy, aspect, near, far);
 
     // starts the timer 
@@ -228,6 +258,8 @@ void Viewer::createShaders(){
     _debugNoise->load("shaders/debugNoise.vert","shaders/debugNoise.frag");
     _debugNormal = new Shader();
     _debugNormal->load("shaders/debugNormal.vert","shaders/debugNormal.frag");
+    _normalShader = new Shader();
+    _normalShader->load("shaders/normal.vert", "shaders/normal.frag");
 }
 
 /* Destruction shader */
@@ -237,6 +269,7 @@ void Viewer::deleteShaders() {
   delete _gridShader; _gridShader = NULL;
   delete _debugNoise; _debugNoise = NULL;
   delete _debugNormal; _debugNormal = NULL;
+  delete _normalShader; _normalShader = NULL;
 }
 
 /* Create FBO */
@@ -245,7 +278,7 @@ void Viewer::createFBO(){
     int nbFBO = 1;
 
     glGenFramebuffers(nbFBO, &_fbo);
-    glGenTextures(1,&_perlinMap);
+    glGenTextures(1,&_heightMap);
     glGenTextures(1,&_normalMap);
 
 }
@@ -256,7 +289,7 @@ void Viewer::initFBO(){
 
     /* creation de la texture avec le bruit de Perlin */
     /* la taille est égale au nombre de cases de la grille */
-    glBindTexture(GL_TEXTURE_2D,_perlinMap);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
     glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
@@ -274,8 +307,8 @@ void Viewer::initFBO(){
     /* pour associer les textures */
     glBindFramebuffer(GL_FRAMEBUFFER,_fbo);
 
-    glBindTexture(GL_TEXTURE_2D,_perlinMap);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_perlinMap,0);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_heightMap,0);
 
     glBindTexture(GL_TEXTURE_2D,_normalMap);
     glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,_normalMap,0);
@@ -286,7 +319,7 @@ void Viewer::initFBO(){
 
 void Viewer::deleteFBO(){
   glDeleteFramebuffers(1,&_fbo);
-  glDeleteTextures(1,&_perlinMap);
+  glDeleteTextures(1,&_heightMap);
   glDeleteTextures(1,&_normalMap);
 }
 
@@ -325,8 +358,12 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
     // key r: reload shaders 
     if(ke->key()==Qt::Key_R) {
-        _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
-        _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
+        
+    _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
+    _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
+    _debugNoise->reload("shaders/debugNoise.vert","shaders/debugNoise.frag");
+    _debugNormal->reload("shaders/debugNormal.vert","shaders/debugNormal.frag");
+    _normalShader->reload("shaders/normal.vert", "shaders/normal.frag");
 
     }
 
