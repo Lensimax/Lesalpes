@@ -7,7 +7,7 @@
 using namespace std;
 
 /* taille d'un ligne de la grille */
-const unsigned int GRID_SIZE = 1024;
+const unsigned int GRID_SIZE = 512;
 
 
 Viewer::Viewer(const QGLFormat &format)
@@ -23,6 +23,7 @@ Viewer::Viewer(const QGLFormat &format)
 
 
     _cam  = new Camera();
+    _light = glm::vec3(0,0,1);
 
 
     _timer->setInterval(10);
@@ -79,6 +80,8 @@ void Viewer::drawGrid(GLuint id){
 
     glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(_cam->mdvMatrix()[0][0]));
     glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_cam->projMatrix()[0][0]));
+    glUniformMatrix3fv(glGetUniformLocation(id,"normalMatrix"),1,GL_FALSE,&(_cam->normalMatrix()[0][0]));
+    glUniform3fv(glGetUniformLocation(id, "lightVector"), 1, &(_light[0]));
 
 
     glActiveTexture(GL_TEXTURE0);
