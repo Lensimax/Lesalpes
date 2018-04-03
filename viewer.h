@@ -23,7 +23,7 @@
 
 #include "grid.h"
 #include "shader.h"
-#include "meshLoader.h"
+#include "camera.h"
 
 class Viewer : public QGLWidget {
  public:
@@ -44,12 +44,19 @@ class Viewer : public QGLWidget {
     void createShaders();
     void deleteShaders();
 
+
+
     void createFBO();
     void initFBO();
     void deleteFBO();
 
  private:
 
+    void loadTexture(GLuint id,const char *filename);
+    void createTextures();
+    void deleteTextures();
+
+    void drawVAO(GLuint id);
     void drawGrid(GLuint id);
     void drawDebugMap(GLuint id, GLuint idTexture, char *shaderName);
     void drawQuad();
@@ -67,6 +74,8 @@ class Viewer : public QGLWidget {
     GLuint _quad;
 
     GLuint _fbo;
+
+    GLuint _mountainText;
 
     /* Texture created */
     GLuint _heightMap;
@@ -87,7 +96,9 @@ class Viewer : public QGLWidget {
     bool _noiseDebug;
     bool _normalDebug;
 
-    // Mesh *_mesh;
+    Camera *_cam;
+
+
 
 
     QTimer *_timer;    // timer that controls the animation

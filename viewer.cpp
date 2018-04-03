@@ -21,8 +21,8 @@ Viewer::Viewer(const QGLFormat &format)
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
-    // char *filename = "models/shere.off";
-    // _mesh = new Mesh(filename);
+
+    _cam  = new Camera();
 
 
     _timer->setInterval(10);
@@ -33,37 +33,37 @@ Viewer::~Viewer() {
     deleteVAO();
     deleteShaders();
     deleteFBO();
+    deleteTextures();
     delete _timer;
-    // delete _mesh;
+    delete _cam;
 }
 
 
 void Viewer::createVAO() {
 
-    const GLfloat quadData[] = {
+  const GLfloat quadData[] = {
     -1.0f,-1.0f,0.0f, 1.0f,-1.0f,0.0f, -1.0f,1.0f,0.0f, -1.0f,1.0f,0.0f, 1.0f,-1.0f,0.0f, 1.0f,1.0f,0.0f };
 
-    glGenBuffers(2,_terrain);
-    glGenBuffers(1,&_quad);
-    glGenVertexArrays(1,&_vaoTerrain);
-    glGenVertexArrays(1,&_vaoQuad);
+  glGenBuffers(2,_terrain);
+  glGenBuffers(1,&_quad);
+  glGenVertexArrays(1,&_vaoTerrain);
+  glGenVertexArrays(1,&_vaoQuad);
 
-    // create the VBO associated with the grid (the terrain)
-    glBindVertexArray(_vaoTerrain);
-    glBindBuffer(GL_ARRAY_BUFFER,_terrain[0]); // vertices
-    // glBufferData(GL_ARRAY_BUFFER,_mesh->nb_vertices*3*sizeof(float),_grid->vertices(),GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER,_grid->nbVertices()*3*sizeof(float),_grid->vertices(),GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_terrain[1]); // indices
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,_grid->nbFaces()*3*sizeof(int),_grid->faces(),GL_STATIC_DRAW);
+  // create the VBO associated with the grid (the terrain)
+  glBindVertexArray(_vaoTerrain);
+  glBindBuffer(GL_ARRAY_BUFFER,_terrain[0]); // vertices
+  glBufferData(GL_ARRAY_BUFFER,_grid->nbVertices()*3*sizeof(float),_grid->vertices(),GL_STATIC_DRAW);
+  glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_terrain[1]); // indices
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,_grid->nbFaces()*3*sizeof(int),_grid->faces(),GL_STATIC_DRAW);
 
-    // create the VBO associated with the screen quad
-    glBindVertexArray(_vaoQuad);
-    glBindBuffer(GL_ARRAY_BUFFER,_quad); // vertices
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadData),quadData,GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
-    glEnableVertexAttribArray(0);
+  // create the VBO associated with the screen quad
+  glBindVertexArray(_vaoQuad);
+  glBindBuffer(GL_ARRAY_BUFFER,_quad); // vertices
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadData),quadData,GL_STATIC_DRAW);
+  glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
+  glEnableVertexAttribArray(0);
 }
 
 void Viewer::deleteVAO() {
@@ -77,28 +77,31 @@ void Viewer::deleteVAO() {
 
 void Viewer::drawGrid(GLuint id){
 
-    glUniformMatrix4fv(glGetUniformLocation(id,"modelMat"),1,GL_FALSE,&(_modelMat[0][0]));
-    glUniformMatrix4fv(glGetUniformLocation(id,"viewMat"),1,GL_FALSE,&(_viewMat[0][0]));
-    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_projMat[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(_cam->mdvMatrix()[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_cam->projMatrix()[0][0]));
 
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,_heightMap);
     glUniform1i(glGetUniformLocation(id, "heightmap"), 0);    
 
-    glActiveTexture(GL_TEXTURE0+1);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D,_normalMap);
     glUniform1i(glGetUniformLocation(id, "normalMap"), 1); 
 
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D,_mountainText);
+    glUniform1i(glGetUniformLocation(id, "mountainText"), 2); 
+
     /* on dessine la grille */
     glBindVertexArray(_vaoTerrain);
-    glDrawElements(GL_TRIANGLES,3*_grid->nbVertices(),GL_UNSIGNED_INT,(void *)0);
     glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
 
     /* on desactive le vertex array */
     glBindVertexArray(0);
 
 }
+
 
 void Viewer::drawDebugMap(GLuint id, GLuint idTexture, char *shaderName){
     /* active la texture */
@@ -133,7 +136,7 @@ void Viewer::computePerlinNoise(GLuint id){
     glDrawBuffers(1,bufferlist);
 
     /* on clear les buffers */ 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     /* on dessine le carré */
     drawQuad();
@@ -163,7 +166,7 @@ void Viewer::computeNormalMap(GLuint id){
 
 void Viewer::paintGL() {
 
-    glViewport(0,0,width(),height());
+    glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
@@ -172,11 +175,13 @@ void Viewer::paintGL() {
 
     computeNormalMap(_normalShader->id());
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
 
     
     /* On active le shader pour afficher la grille */
+    glViewport(0,0,width(),height());
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+
     glUseProgram(_gridShader->id());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -186,6 +191,7 @@ void Viewer::paintGL() {
 
     /* affichage de la noise map */
     if(_noiseDebug){
+        glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
         glUseProgram(_debugNoise->id());
 
@@ -196,6 +202,7 @@ void Viewer::paintGL() {
 
     /* affichage de la normal map */
     if(_normalDebug){
+        glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
         glUseProgram(_debugNormal->id());
 
@@ -210,13 +217,42 @@ void Viewer::paintGL() {
     glBindVertexArray(0);
 }
 
+void Viewer::loadTexture(GLuint id,const char *filename) {
+    // load image 
+    QImage image = QGLWidget::convertToGLFormat(QImage(filename));
+
+    // activate texture 
+    glBindTexture(GL_TEXTURE_2D,id);
+
+    // set texture parameters 
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); 
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_MIRRORED_REPEAT);
+
+    // store texture in the GPU
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,image.width(),image.height(),0,
+           GL_RGBA,GL_UNSIGNED_BYTE,(const GLvoid *)image.bits());
+
+    // generate mipmaps 
+    glGenerateMipmap(GL_TEXTURE_2D);
+}
+
+void Viewer::createTextures(){
+
+    glGenTextures(1,&_mountainText);
+
+    loadTexture(_mountainText, "textures/texture-mountain.jpg");
+}
+
+void Viewer::deleteTextures(){
+    glDeleteTextures(1,&_mountainText);
+}
 
 
 void Viewer::initializeGL() {
     // make this window the current one
     makeCurrent();
-
-    _grid = new Grid(8, 0.0, 5.0);
 
     // init and chack glew
     glewExperimental = GL_TRUE;
@@ -232,26 +268,17 @@ void Viewer::initializeGL() {
     glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
     glViewport(0,0,width(),height());
 
+    _cam->initialize(width(),height(),true);
+
     createShaders();
     createVAO();
+    createTextures();
 
     /* Crée et initialize le FBO */
     createFBO();
     initFBO();
 
-    /* creation des matrices: Modele, Vue, Projection */
 
-    float fovy = 45.0;
-    float aspect = width()/height();
-    float near = 0.1;
-    float far = 100;
-
-
-    _modelMat = glm::mat4(1.0f);
-    _viewMat = glm::mat4(1.0f);
-    _projMat = glm::mat4(1.0f);
-    _viewMat = glm::lookAt(glm::vec3(2.0,0.0,10.0) ,glm::vec3(0.0,0.0,0.0), glm::vec3(0.0,1.0,0.0)); 
-    _projMat = glm::perspective(fovy, aspect, near, far);
 
     // starts the timer 
     _timer->start();
@@ -344,14 +371,22 @@ void Viewer::resizeGL(int width,int height) {
 }
 
 void Viewer::mousePressEvent(QMouseEvent *me) {
+    const glm::vec2 p((float)me->x(),(float)(height()-me->y()));
 
+  if(me->button()==Qt::LeftButton) {
+    _cam->initRotation(p);
+  } else if(me->button()==Qt::MidButton) {
+    _cam->initMoveZ(p);
+  } else if(me->button()==Qt::RightButton) {
+  } 
 
   updateGL();
 }
 
 void Viewer::mouseMoveEvent(QMouseEvent *me) {
     const glm::vec2 p((float)me->x(),(float)(height()-me->y()));
-
+ 
+    _cam->move(p);
 
     updateGL();
 }
@@ -384,6 +419,13 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
     if(ke->key()==Qt::Key_N){
         _normalDebug = !_normalDebug;
     }
+
+
+    // key i: init camera
+    if(ke->key()==Qt::Key_I) {
+        _cam->initialize(width(),height(),true);
+    }
+
 
 
     updateGL();
