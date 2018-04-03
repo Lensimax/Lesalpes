@@ -71,6 +71,7 @@ class Viewer : public QGLWidget {
     void drawGrid(GLuint id);
     void drawDebugMap(GLuint id, GLuint idTexture);
     void drawQuad();
+    void drawFromTheLight(GLuint id);
     void computePerlinNoise(GLuint id);
     void computeNormalMap(GLuint id);
     

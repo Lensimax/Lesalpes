@@ -35,6 +35,8 @@ Viewer::~Viewer() {
     deleteVAO();
     deleteShaders();
     deleteFBOComputing();
+    deleteFBOPostProcess();
+    deleteFBOShadowMap();
     deleteTextures();
     delete _timer;
     delete _cam;
@@ -178,6 +180,30 @@ void Viewer::sendToPostProcessShader(GLuint id){
     glUniform1i(glGetUniformLocation(id, "renderedMap"), 0);
 }
 
+void Viewer::drawFromTheLight(GLuint id){
+    const float size = GRID_SIZE;
+    glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
+    glm::mat4 p   = glm::ortho<float>(-size,size,-size,size,-size,2*size);
+    glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
+    glm::mat4 m   = glm::mat4(1.0);
+    glm::mat4 mv  = v*m;
+
+    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(mv[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(p[0][0]));
+
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glUniform1i(glGetUniformLocation(id, "heightmap"), 0);   
+    
+    /* on dessine la grille */
+    glBindVertexArray(_vaoTerrain);
+    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
+
+    /* on desactive le vertex array */
+    glBindVertexArray(0);    
+}
+
 
 void Viewer::paintGL() {
 
@@ -211,8 +237,18 @@ void Viewer::paintGL() {
     /* on desactive le FBO */
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    /* on affiche la texture qu'on vient de créer */
+    /* pour le calcul des ombres */
+    glBindFramebuffer(GL_FRAMEBUFFER, _fboShadowCompute);
 
+    glUseProgram(_shadowComputeShader->id());
+
+
+    drawFromTheLight(_shadowComputeShader->id());
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+
+    /* on affiche la texture qu'on vient de créer */
     glUseProgram(_postProcessShader->id());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -307,6 +343,8 @@ void Viewer::initializeGL() {
     initFBOComputing();
     createFBOPostProcess();
     initFBOPostProcess();
+    createFBOShadowMap();
+    initFBOShadowMap();
 
 
 
@@ -361,7 +399,7 @@ void Viewer::initFBOShadowMap(){
     glBindFramebuffer(GL_FRAMEBUFFER,_fboShadowCompute);
 
     glBindTexture(GL_TEXTURE_2D,_shadowMap);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,_renderedDepth,0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,_shadowMap,0);
 
     /* on desactive le buffer */
      glBindFramebuffer(GL_FRAMEBUFFER,0);
