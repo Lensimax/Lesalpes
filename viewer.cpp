@@ -93,7 +93,6 @@ void Viewer::drawGrid(GLuint id){
 
     /* on dessine la grille */
     glBindVertexArray(_vaoTerrain);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _terrain[1]);
     glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
 
     /* on desactive le vertex array */
@@ -135,7 +134,7 @@ void Viewer::computePerlinNoise(GLuint id){
     glDrawBuffers(1,bufferlist);
 
     /* on clear les buffers */ 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     /* on dessine le carré */
     drawQuad();
@@ -165,7 +164,7 @@ void Viewer::computeNormalMap(GLuint id){
 
 void Viewer::paintGL() {
 
-    glViewport(0,0,width(),height());
+    glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
@@ -179,6 +178,8 @@ void Viewer::paintGL() {
 
     
     /* On active le shader pour afficher la grille */
+    glViewport(0,0,width(),height());
+
     glUseProgram(_gridShader->id());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

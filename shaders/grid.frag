@@ -2,7 +2,13 @@
 
 out vec4 outBuffer;
 
-void main(){
+uniform sampler2D heightmap;
+uniform sampler2D normalmap;
 
-	outBuffer = vec4(1.0,0.0,0.0,1.0);
+in vec2 texCoord;
+
+void main(){
+	outBuffer = texture(heightmap, texCoord);
+	// outBuffer = texture(normalmap, texCoord);
+	// outBuffer = vec4(1.0,0.0,0.0,1.0);
 }
