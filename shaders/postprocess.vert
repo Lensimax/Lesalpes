@@ -1,13 +1,11 @@
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec2 textcoord;
+#version 330
 
-uniform sampler2D postMap;
+// input attributes 
+layout(location = 0) in vec3 position;// position of the vertex in world space
 
-out float fogFactor;
-out vec4 fragmentColor;
+out vec2 texcoord;
 
 void main() {
-	//calcul du facteur de brouillard
-	fogFactor = exp(-(position.z));
-	fragmentColor = texture(postMap,textcoord);
+  gl_Position = vec4(position,1.0);
+  texcoord = position.xy*0.5+0.5;
 }

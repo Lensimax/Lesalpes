@@ -326,7 +326,7 @@ void Viewer::createShaders(){
     _normalShader = new Shader();
     _normalShader->load("shaders/normal.vert", "shaders/normal.frag");
     _postProcessShader = new Shader();
-    _postProcessShader->load("shaders/postProcess.vert", "shaders/postProcess.frag");
+    _postProcessShader->load("shaders/postprocess.vert", "shaders/postprocess.frag");
 }
 
 /* Destruction shader */
@@ -469,7 +469,7 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
         _debugNoise->reload("shaders/debugNoise.vert","shaders/debugNoise.frag");
         _debugNormal->reload("shaders/debugNormal.vert","shaders/debugNormal.frag");
         _normalShader->reload("shaders/normal.vert", "shaders/normal.frag");
-        _postProcessShader->reload("shaders/postProcess.vert", "shaders/postProcess.frag");
+        _postProcessShader->reload("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     }
 
