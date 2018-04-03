@@ -89,11 +89,9 @@ class Viewer : public QGLWidget {
     bool _noiseDebug;
     bool _normalDebug;
 
-    Mesh *_mesh;
     Camera *_cam;
 
 
-    GLuint _buffers[5];
 
 
     QTimer *_timer;    // timer that controls the animation

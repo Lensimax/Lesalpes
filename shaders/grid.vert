@@ -14,12 +14,14 @@ out vec2 texCoord;
 
 void main() {
 
-	texCoord = position.xy;
+	texCoord = position.xy*0.5+0.5;
 
-	float height = texture(heightmap, vec2(position.xy)).y;
+	float scale = 1.5;
 
-	vec4 computedPosition = vec4(position.x, position.y, height, 1);
-	// vec4 computedPosition = vec4(position, 1);
+	float height = scale * texture(heightmap, vec2(position.xy)).z;
+
+	// vec4 computedPosition = vec4(position.x, position.y, height, 1);
+	vec4 computedPosition = vec4(position, 1);
 
 	gl_Position = projMat*mdvMat*computedPosition;
 

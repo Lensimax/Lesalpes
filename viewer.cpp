@@ -21,10 +21,8 @@ Viewer::Viewer(const QGLFormat &format)
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
-    char *filename = "models/sphere.off";
-    _mesh = new Mesh(filename);
 
-    _cam  = new Camera(_mesh->radius,glm::vec3(_mesh->center[0],_mesh->center[1],_mesh->center[2]));
+    _cam  = new Camera();
 
 
     _timer->setInterval(10);
@@ -36,7 +34,6 @@ Viewer::~Viewer() {
     deleteShaders();
     deleteFBO();
     delete _timer;
-    delete _mesh;
     delete _cam;
 }
 
@@ -87,7 +84,7 @@ void Viewer::drawGrid(GLuint id){
     glBindTexture(GL_TEXTURE_2D,_heightMap);
     glUniform1i(glGetUniformLocation(id, "heightmap"), 0);    
 
-    glActiveTexture(GL_TEXTURE0+1);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D,_normalMap);
     glUniform1i(glGetUniformLocation(id, "normalMap"), 1); 
 
@@ -173,12 +170,12 @@ void Viewer::paintGL() {
 
     computeNormalMap(_normalShader->id());
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
 
     
     /* On active le shader pour afficher la grille */
     glViewport(0,0,width(),height());
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
 
     glUseProgram(_gridShader->id());
 
@@ -190,6 +187,7 @@ void Viewer::paintGL() {
 
     /* affichage de la noise map */
     if(_noiseDebug){
+        glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
         glUseProgram(_debugNoise->id());
 
@@ -200,6 +198,7 @@ void Viewer::paintGL() {
 
     /* affichage de la normal map */
     if(_normalDebug){
+        glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
         glUseProgram(_debugNormal->id());
 
