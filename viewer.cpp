@@ -163,6 +163,12 @@ void Viewer::computeNormalMap(GLuint id){
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Viewer::sendToPostProcessShader(GLuint id){
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
+    glUniform1i(glGetUniformLocation(id, "renderedMap"), 0);
+}
+
 
 void Viewer::paintGL() {
 
@@ -185,7 +191,28 @@ void Viewer::paintGL() {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, _fboPostProcess);
+
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* on fait un rendu dans la texture */
     drawGrid(_gridShader->id());
+
+    /* on desactive le FBO */
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    /* on affiche la texture qu'on vient de créer */
+
+    glViewport(0,0,width(),height());
+    glUseProgram(_postProcessShader->id());
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* on envoie ce que l'on veut au shader de PostProcess */
+    sendToPostProcessShader(_postProcessShader->id());
+
+    drawQuad();
+
 
 
     /* affichage de la noise map */
@@ -276,6 +303,8 @@ void Viewer::initializeGL() {
     /* Crée et initialize le FBO */
     createFBOComputing();
     initFBOComputing();
+    createFBOPostProcess();
+    initFBOPostProcess();
 
 
 
@@ -296,6 +325,8 @@ void Viewer::createShaders(){
     _debugNormal->load("shaders/debugNormal.vert","shaders/debugNormal.frag");
     _normalShader = new Shader();
     _normalShader->load("shaders/normal.vert", "shaders/normal.frag");
+    _postProcessShader = new Shader();
+    _postProcessShader->load("shaders/postProcess.vert", "shaders/postProcess.frag");
 }
 
 /* Destruction shader */
@@ -306,6 +337,35 @@ void Viewer::deleteShaders() {
   delete _debugNoise; _debugNoise = NULL;
   delete _debugNormal; _debugNormal = NULL;
   delete _normalShader; _normalShader = NULL;
+  delete _postProcessShader; _postProcessShader = NULL;
+}
+
+void Viewer::createFBOPostProcess(){
+    glGenFramebuffers(1, &_fboPostProcess);
+    glGenTextures(1,&_renderedGridMap);
+}
+
+void Viewer::initFBOPostProcess(){
+
+    glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,width(),height(),0,GL_RGBA,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER,_fboPostProcess);
+
+    glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_renderedGridMap,0);
+
+    /* on desactive le buffer */
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void Viewer::deleteFBOPostProcess(){
+    glDeleteFramebuffers(1,&_fboPostProcess);
+    glDeleteTextures(1,&_renderedGridMap);
 }
 
 /* Create FBO */
@@ -366,6 +426,7 @@ void Viewer::deleteFBOComputing(){
 void Viewer::resizeGL(int width,int height) {
     glViewport(0,0,width,height);
     initFBOComputing();
+    initFBOPostProcess();
     updateGL();
 }
 
@@ -403,11 +464,12 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
     // key r: reload shaders 
     if(ke->key()==Qt::Key_R) {
         
-    _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
-    _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
-    _debugNoise->reload("shaders/debugNoise.vert","shaders/debugNoise.frag");
-    _debugNormal->reload("shaders/debugNormal.vert","shaders/debugNormal.frag");
-    _normalShader->reload("shaders/normal.vert", "shaders/normal.frag");
+        _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
+        _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
+        _debugNoise->reload("shaders/debugNoise.vert","shaders/debugNoise.frag");
+        _debugNormal->reload("shaders/debugNormal.vert","shaders/debugNormal.frag");
+        _normalShader->reload("shaders/normal.vert", "shaders/normal.frag");
+        _postProcessShader->reload("shaders/postProcess.vert", "shaders/postProcess.frag");
 
     }
 

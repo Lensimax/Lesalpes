@@ -50,11 +50,18 @@ class Viewer : public QGLWidget {
     void initFBOComputing();
     void deleteFBOComputing();
 
+    void createFBOPostProcess();
+    void initFBOPostProcess();
+    void deleteFBOPostProcess();
+
+
  private:
 
     void loadTexture(GLuint id,const char *filename);
     void createTextures();
     void deleteTextures();
+
+    void sendToPostProcessShader(GLuint id);
 
     void drawVAO(GLuint id);
     void drawGrid(GLuint id);
@@ -74,6 +81,7 @@ class Viewer : public QGLWidget {
     GLuint _quad;
 
     GLuint _fboComputing;
+    GLuint _fboPostProcess;
 
     GLuint _mountainText;
 
