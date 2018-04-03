@@ -93,7 +93,7 @@ void Viewer::drawGrid(GLuint id){
 
     /* on dessine la grille */
     glBindVertexArray(_vaoTerrain);
-    glDrawElements(GL_TRIANGLES,3*_grid->nbVertices(),GL_UNSIGNED_INT,(void *)0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _terrain[1]);
     glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
 
     /* on desactive le vertex array */
@@ -138,7 +138,7 @@ void Viewer::computePerlinNoise(GLuint id){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /* on dessine le carré */
-    drawGrid(_gridShader->id());
+    drawQuad();
 
     /* desactive le FBO */
     glBindFramebuffer(GL_FRAMEBUFFER,0);
