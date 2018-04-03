@@ -6,7 +6,7 @@ uniform sampler2D heightmap;
 in vec2 texcoord;
 
 
-layout(location = 1) out vec4 outBuffer1;
+layout(location = 0) out vec4 outNormals;
 
 float value(in vec4 c) {
 	// gradient of what:
@@ -33,6 +33,6 @@ void main() {
 
 	outBuffer = vec4(n,value(texture(heightmap,texcoord)));
 
-	outBuffer1 = outBuffer;
+	outNormals = outBuffer;
 
 }
