@@ -181,7 +181,6 @@ void Viewer::paintGL() {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // drawGrid(_gridShader->id());
     drawGrid(_gridShader->id());
 
 
@@ -244,19 +243,7 @@ void Viewer::initializeGL() {
     createFBO();
     initFBO();
 
-    /* creation des matrices: Modele, Vue, Projection */
 
-    float fovy = 45.0;
-    float aspect = width()/height();
-    float near = 0.1;
-    float far = 100;
-
-
-    _modelMat = glm::mat4(1.0f);
-    _viewMat = glm::mat4(1.0f);
-    _projMat = glm::mat4(1.0f);
-    _viewMat = glm::lookAt(glm::vec3(2.0,0.0,10.0) ,glm::vec3(0.0,0.0,0.0), glm::vec3(0.0,1.0,0.0)); 
-    _projMat = glm::perspective(fovy, aspect, near, far);
 
     // starts the timer 
     _timer->start();
