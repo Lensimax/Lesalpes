@@ -218,8 +218,6 @@ void Viewer::initializeGL() {
     // make this window the current one
     makeCurrent();
 
-    _grid = new Grid(8, 0.0, 5.0);
-
     // init and chack glew
     glewExperimental = GL_TRUE;
 
@@ -385,6 +383,11 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
         _normalDebug = !_normalDebug;
     }
 
+
+    // key i: init camera
+    if(ke->key()==Qt::Key_I) {
+        _cam->initialize(width(),height(),true);
+    }
 
 
 
