@@ -86,6 +86,10 @@ void Viewer::drawGrid(GLuint id){
     glBindTexture(GL_TEXTURE_2D,_heightMap);
     glUniform1i(glGetUniformLocation(id, "heightmap"), 0);    
 
+    glActiveTexture(GL_TEXTURE0+1);
+    glBindTexture(GL_TEXTURE_2D,_normalMap);
+    glUniform1i(glGetUniformLocation(id, "normalMap"), 1); 
+
     /* on dessine la grille */
     glBindVertexArray(_vaoTerrain);
     glDrawElements(GL_TRIANGLES,3*_grid->nbVertices(),GL_UNSIGNED_INT,(void *)0);
