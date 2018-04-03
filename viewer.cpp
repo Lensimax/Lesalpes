@@ -43,52 +43,29 @@ Viewer::~Viewer() {
 
 void Viewer::createVAO() {
 
-    const GLfloat quadData[] = {
+  const GLfloat quadData[] = {
     -1.0f,-1.0f,0.0f, 1.0f,-1.0f,0.0f, -1.0f,1.0f,0.0f, -1.0f,1.0f,0.0f, 1.0f,-1.0f,0.0f, 1.0f,1.0f,0.0f };
 
-    glGenBuffers(1,&_quad);
-    glGenVertexArrays(1,&_vaoTerrain);
-    glGenVertexArrays(1,&_vaoQuad);
+  glGenBuffers(2,_terrain);
+  glGenBuffers(1,&_quad);
+  glGenVertexArrays(1,&_vaoTerrain);
+  glGenVertexArrays(1,&_vaoQuad);
 
-    glGenBuffers(5,_buffers);
-
-  // bind VAO 
+  // create the VBO associated with the grid (the terrain)
   glBindVertexArray(_vaoTerrain);
-  
-  // send and enable positions 
-  glBindBuffer(GL_ARRAY_BUFFER,_buffers[0]);
-  glBufferData(GL_ARRAY_BUFFER,_mesh->nb_vertices*3*sizeof(float),_mesh->vertices,GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER,_terrain[0]); // vertices
+  glBufferData(GL_ARRAY_BUFFER,_grid->nbVertices()*3*sizeof(float),_grid->vertices(),GL_STATIC_DRAW);
   glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
   glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_terrain[1]); // indices
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,_grid->nbFaces()*3*sizeof(int),_grid->faces(),GL_STATIC_DRAW);
 
-  // send and enable normals 
-  glBindBuffer(GL_ARRAY_BUFFER,_buffers[1]);
-  glBufferData(GL_ARRAY_BUFFER,_mesh->nb_vertices*3*sizeof(float),_mesh->normals,GL_STATIC_DRAW);
-  glVertexAttribPointer(1,3,GL_FLOAT,GL_TRUE,0,(void *)0);
-  glEnableVertexAttribArray(1);
-
-  // send and enable tangents
-  glBindBuffer(GL_ARRAY_BUFFER,_buffers[2]);
-  glBufferData(GL_ARRAY_BUFFER,_mesh->nb_vertices*3*sizeof(float),_mesh->tangents,GL_STATIC_DRAW);
-  glVertexAttribPointer(2,3,GL_FLOAT,GL_TRUE,0,(void *)0);
-  glEnableVertexAttribArray(2);
-
-  // send and enable coords 
-  glBindBuffer(GL_ARRAY_BUFFER,_buffers[3]);
-  glBufferData(GL_ARRAY_BUFFER,_mesh->nb_vertices*2*sizeof(float),_mesh->coords,GL_STATIC_DRAW);
-  glVertexAttribPointer(3,2,GL_FLOAT,GL_FALSE,0,(void *)0);
-  glEnableVertexAttribArray(3);
-
-  // send faces 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_buffers[4]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,_mesh->nb_faces*3*sizeof(unsigned int),_mesh->faces,GL_STATIC_DRAW);
-
-    // create the VBO associated with the screen quad
-    glBindVertexArray(_vaoQuad);
-    glBindBuffer(GL_ARRAY_BUFFER,_quad); // vertices
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadData),quadData,GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
-    glEnableVertexAttribArray(0);
+  // create the VBO associated with the screen quad
+  glBindVertexArray(_vaoQuad);
+  glBindBuffer(GL_ARRAY_BUFFER,_quad); // vertices
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadData),quadData,GL_STATIC_DRAW);
+  glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
+  glEnableVertexAttribArray(0);
 }
 
 void Viewer::deleteVAO() {
@@ -102,9 +79,8 @@ void Viewer::deleteVAO() {
 
 void Viewer::drawGrid(GLuint id){
 
-    glUniformMatrix4fv(glGetUniformLocation(id,"modelMat"),1,GL_FALSE,&(_modelMat[0][0]));
-    glUniformMatrix4fv(glGetUniformLocation(id,"viewMat"),1,GL_FALSE,&(_viewMat[0][0]));
-    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_projMat[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(_cam->mdvMatrix()[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_cam->projMatrix()[0][0]));
 
 
     glActiveTexture(GL_TEXTURE0);
@@ -125,22 +101,6 @@ void Viewer::drawGrid(GLuint id){
 
 }
 
-void Viewer::drawVAO(GLuint id) {
-
-
-    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(_cam->mdvMatrix()[0][0]));
-
-  // send the projection matrix 
-  glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_cam->projMatrix()[0][0]));
-
-  // send the normal matrix (top-left 3x3 transpose(inverse(MDV))) 
-  glUniformMatrix3fv(glGetUniformLocation(id,"normalMat"),1,GL_FALSE,&(_cam->normalMatrix()[0][0]));
-
-  // activate the VAO, draw the associated triangles and desactivate the VAO
-  glBindVertexArray(_vaoTerrain);
-  glDrawElements(GL_TRIANGLES,3*_mesh->nb_faces,GL_UNSIGNED_INT,(void *)0);
-  glBindVertexArray(0);
-}
 
 void Viewer::drawDebugMap(GLuint id, GLuint idTexture, char *shaderName){
     /* active la texture */
@@ -178,7 +138,7 @@ void Viewer::computePerlinNoise(GLuint id){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /* on dessine le carré */
-    drawQuad();
+    drawGrid(_gridShader->id());
 
     /* desactive le FBO */
     glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -224,7 +184,7 @@ void Viewer::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // drawGrid(_gridShader->id());
-    drawVAO(_gridShader->id());
+    drawGrid(_gridShader->id());
 
 
     /* affichage de la noise map */
