@@ -21,8 +21,8 @@ Viewer::Viewer(const QGLFormat &format)
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
-    // char *filename = "models/shere.off";
-    // _mesh = new Mesh(filename);
+    char *filename = "models/shere.off";
+    _mesh = new Mesh(filename);
 
 
     _timer->setInterval(10);
@@ -34,7 +34,7 @@ Viewer::~Viewer() {
     deleteShaders();
     deleteFBO();
     delete _timer;
-    // delete _mesh;
+    delete _mesh;
 }
 
 

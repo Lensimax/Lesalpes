@@ -24,6 +24,7 @@
 #include "grid.h"
 #include "shader.h"
 #include "meshLoader.h"
+#include "camera.h"
 
 class Viewer : public QGLWidget {
  public:
@@ -87,7 +88,7 @@ class Viewer : public QGLWidget {
     bool _noiseDebug;
     bool _normalDebug;
 
-    // Mesh *_mesh;
+    Mesh *_mesh;
 
 
     QTimer *_timer;    // timer that controls the animation
