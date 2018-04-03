@@ -12,8 +12,8 @@ layout(location = 0) out vec4 outRendered;
 
 void main(){
 
-	// outBuffer = texture(heightmap, texCoord);
-	outBuffer = texture(mountainText, texCoord); // c'est deguelasse
+	outBuffer = texture(normalMap, texCoord);
+	// outBuffer = texture(mountainText, texCoord); // c'est deguelasse
 	// outBuffer = vec4(1.0,0.0,0.0,1.0);
 
 	outRendered = outBuffer;

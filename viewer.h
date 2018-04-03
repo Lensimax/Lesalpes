@@ -89,6 +89,7 @@ class Viewer : public QGLWidget {
     GLuint _heightMap;
     GLuint _normalMap;
     GLuint _renderedGridMap;
+    GLuint _renderedDepth;
 
     Shader *_noiseShader;
     Shader *_gridShader;

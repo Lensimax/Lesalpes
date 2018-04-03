@@ -204,9 +204,9 @@ void Viewer::paintGL() {
 
     /* on affiche la texture qu'on vient de créer */
 
-    glViewport(0,0,width(),height());
     glUseProgram(_postProcessShader->id());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
     /* on envoie ce que l'on veut au shader de PostProcess */
     sendToPostProcessShader(_postProcessShader->id());
@@ -343,6 +343,7 @@ void Viewer::deleteShaders() {
 void Viewer::createFBOPostProcess(){
     glGenFramebuffers(1, &_fboPostProcess);
     glGenTextures(1,&_renderedGridMap);
+    glGenTextures(1, &_renderedDepth);
 }
 
 void Viewer::initFBOPostProcess(){
@@ -354,10 +355,20 @@ void Viewer::initFBOPostProcess(){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+    glBindTexture(GL_TEXTURE_2D,_renderedDepth);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,width(),height(),0,GL_DEPTH_COMPONENT,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     glBindFramebuffer(GL_FRAMEBUFFER,_fboPostProcess);
 
     glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
     glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_renderedGridMap,0);
+
+    glBindTexture(GL_TEXTURE_2D,_renderedDepth);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,_renderedDepth,0);
 
     /* on desactive le buffer */
     glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -366,14 +377,13 @@ void Viewer::initFBOPostProcess(){
 void Viewer::deleteFBOPostProcess(){
     glDeleteFramebuffers(1,&_fboPostProcess);
     glDeleteTextures(1,&_renderedGridMap);
+    glDeleteTextures(1, &_renderedDepth);
 }
 
 /* Create FBO */
 
 void Viewer::createFBOComputing(){
-    int nbFBO = 1;
-
-    glGenFramebuffers(nbFBO, &_fboComputing);
+    glGenFramebuffers(1, &_fboComputing);
     glGenTextures(1,&_heightMap);
     glGenTextures(1,&_normalMap);
 
