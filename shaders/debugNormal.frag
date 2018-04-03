@@ -5,5 +5,5 @@ out vec4 outBuffer;
 uniform sampler2D normalMap;
 
 void main() {
-  outBuffer = texelFetch(normalMap,ivec2(gl_FragCoord.xy),0);
+ 	outBuffer = texelFetch(normalMap,ivec2(gl_FragCoord.xy),0);
 }

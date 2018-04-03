@@ -12,7 +12,7 @@ const unsigned int GRID_SIZE = 1024;
 
 Viewer::Viewer(const QGLFormat &format)
   : QGLWidget(format), _timer(new QTimer(this))
-    {
+{
 
     setlocale(LC_ALL,"C");
 
@@ -20,6 +20,9 @@ Viewer::Viewer(const QGLFormat &format)
     _normalDebug = false;
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
+
+    // char *filename = "models/shere.off";
+    // _mesh = new Mesh(filename);
 
 
     _timer->setInterval(10);
@@ -31,6 +34,7 @@ Viewer::~Viewer() {
     deleteShaders();
     deleteFBO();
     delete _timer;
+    // delete _mesh;
 }
 
 
@@ -47,6 +51,7 @@ void Viewer::createVAO() {
     // create the VBO associated with the grid (the terrain)
     glBindVertexArray(_vaoTerrain);
     glBindBuffer(GL_ARRAY_BUFFER,_terrain[0]); // vertices
+    // glBufferData(GL_ARRAY_BUFFER,_mesh->nb_vertices*3*sizeof(float),_grid->vertices(),GL_STATIC_DRAW);
     glBufferData(GL_ARRAY_BUFFER,_grid->nbVertices()*3*sizeof(float),_grid->vertices(),GL_STATIC_DRAW);
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void *)0);
     glEnableVertexAttribArray(0);
@@ -72,7 +77,7 @@ void Viewer::deleteVAO() {
 
 void Viewer::drawGrid(GLuint id){
 
-    glUniformMatrix4fv(glGetUniformLocation(id,"smodelMat"),1,GL_FALSE,&(_modelMat[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"modelMat"),1,GL_FALSE,&(_modelMat[0][0]));
     glUniformMatrix4fv(glGetUniformLocation(id,"viewMat"),1,GL_FALSE,&(_viewMat[0][0]));
     glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_projMat[0][0]));
 
@@ -84,6 +89,7 @@ void Viewer::drawGrid(GLuint id){
     /* on dessine la grille */
     glBindVertexArray(_vaoTerrain);
     glDrawElements(GL_TRIANGLES,3*_grid->nbVertices(),GL_UNSIGNED_INT,(void *)0);
+    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
 
     /* on desactive le vertex array */
     glBindVertexArray(0);
@@ -133,12 +139,12 @@ void Viewer::computePerlinNoise(GLuint id){
 }
 
 void Viewer::computeNormalMap(GLuint id){
-    // glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
 
     glUseProgram(id);
 
-    // GLenum bufferlist [] = {GL_COLOR_ATTACHMENT1};
-    // glDrawBuffers(1,bufferlist);    
+    GLenum bufferlist [] = {GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(1,bufferlist);    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glActiveTexture(GL_TEXTURE0);
@@ -147,7 +153,7 @@ void Viewer::computeNormalMap(GLuint id){
 
     drawQuad();
 
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
@@ -167,11 +173,11 @@ void Viewer::paintGL() {
 
     
     /* On active le shader pour afficher la grille */
-    /*glUseProgram(_gridShader->id());
+    glUseProgram(_gridShader->id());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    drawGrid(_gridShader->id());*/
+    drawGrid(_gridShader->id());
 
 
     /* affichage de la noise map */
@@ -192,7 +198,7 @@ void Viewer::paintGL() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         drawDebugMap(_debugNormal->id(), _normalMap, "normalMap");
-    } 
+    }
 
 
     /* On desactive le shader actif */
