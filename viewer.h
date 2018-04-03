@@ -69,8 +69,6 @@ class Viewer : public QGLWidget {
     void drawQuad();
     void computePerlinNoise(GLuint id);
     void computeNormalMap(GLuint id);
-
-
     
 
     Grid *_grid; // notre grille avec le terrain
@@ -108,7 +106,8 @@ class Viewer : public QGLWidget {
     bool _normalDebug;
 
     Camera *_cam;
-
+    glm::vec3 _light;
+    bool _mode;
 
 
 

@@ -443,20 +443,36 @@ void Viewer::resizeGL(int width,int height) {
 void Viewer::mousePressEvent(QMouseEvent *me) {
     const glm::vec2 p((float)me->x(),(float)(height()-me->y()));
 
-  if(me->button()==Qt::LeftButton) {
-    _cam->initRotation(p);
-  } else if(me->button()==Qt::MidButton) {
-    _cam->initMoveZ(p);
-  } else if(me->button()==Qt::RightButton) {
-  } 
+    if(me->button()==Qt::LeftButton) {
+        _cam->initRotation(p);
+        _mode = false;
+    } else if(me->button()==Qt::MidButton) {
+        _cam->initMoveZ(p);
+        _mode = false;
+    } else if(me->button()==Qt::RightButton) {
+        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
+        _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
+        _light = glm::normalize(_light);
+        _mode = true;
+    } 
 
-  updateGL();
+    updateGL();
 }
 
 void Viewer::mouseMoveEvent(QMouseEvent *me) {
     const glm::vec2 p((float)me->x(),(float)(height()-me->y()));
- 
-    _cam->move(p);
+
+    if(_mode) {
+        // light mode
+        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
+        _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
+        _light = glm::normalize(_light);
+    } else {
+    // camera mode
+        _cam->move(p);
+    }
 
     updateGL();
 }
