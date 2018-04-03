@@ -44,11 +44,17 @@ class Viewer : public QGLWidget {
     void createShaders();
     void deleteShaders();
 
+
+
     void createFBO();
     void initFBO();
     void deleteFBO();
 
  private:
+
+    void loadTexture(GLuint id,const char *filename);
+    void createTextures();
+    void deleteTextures();
 
     void drawVAO(GLuint id);
     void drawGrid(GLuint id);
@@ -68,6 +74,8 @@ class Viewer : public QGLWidget {
     GLuint _quad;
 
     GLuint _fbo;
+
+    GLuint _mountainText;
 
     /* Texture created */
     GLuint _heightMap;

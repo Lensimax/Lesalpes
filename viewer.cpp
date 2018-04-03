@@ -33,6 +33,7 @@ Viewer::~Viewer() {
     deleteVAO();
     deleteShaders();
     deleteFBO();
+    deleteTextures();
     delete _timer;
     delete _cam;
 }
@@ -87,6 +88,10 @@ void Viewer::drawGrid(GLuint id){
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D,_normalMap);
     glUniform1i(glGetUniformLocation(id, "normalMap"), 1); 
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D,_mountainText);
+    glUniform1i(glGetUniformLocation(id, "mountainText"), 2); 
 
     /* on dessine la grille */
     glBindVertexArray(_vaoTerrain);
@@ -212,6 +217,37 @@ void Viewer::paintGL() {
     glBindVertexArray(0);
 }
 
+void Viewer::loadTexture(GLuint id,const char *filename) {
+    // load image 
+    QImage image = QGLWidget::convertToGLFormat(QImage(filename));
+
+    // activate texture 
+    glBindTexture(GL_TEXTURE_2D,id);
+
+    // set texture parameters 
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); 
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_MIRRORED_REPEAT);
+
+    // store texture in the GPU
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,image.width(),image.height(),0,
+           GL_RGBA,GL_UNSIGNED_BYTE,(const GLvoid *)image.bits());
+
+    // generate mipmaps 
+    glGenerateMipmap(GL_TEXTURE_2D);
+}
+
+void Viewer::createTextures(){
+
+    glGenTextures(1,&_mountainText);
+
+    loadTexture(_mountainText, "textures/texture-mountain.jpg");
+}
+
+void Viewer::deleteTextures(){
+    glDeleteTextures(1,&_mountainText);
+}
 
 
 void Viewer::initializeGL() {
@@ -236,6 +272,7 @@ void Viewer::initializeGL() {
 
     createShaders();
     createVAO();
+    createTextures();
 
     /* Crée et initialize le FBO */
     createFBO();
