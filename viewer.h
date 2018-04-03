@@ -54,6 +54,10 @@ class Viewer : public QGLWidget {
     void initFBOPostProcess();
     void deleteFBOPostProcess();
 
+    void createFBOShadowMap();
+    void initFBOShadowMap();
+    void deleteFBOShadowMap();
+
 
  private:
 
@@ -65,7 +69,7 @@ class Viewer : public QGLWidget {
 
     void drawVAO(GLuint id);
     void drawGrid(GLuint id);
-    void drawDebugMap(GLuint id, GLuint idTexture, char *shaderName);
+    void drawDebugMap(GLuint id, GLuint idTexture);
     void drawQuad();
     void computePerlinNoise(GLuint id);
     void computeNormalMap(GLuint id);
@@ -80,6 +84,7 @@ class Viewer : public QGLWidget {
 
     GLuint _fboComputing;
     GLuint _fboPostProcess;
+    GLuint _fboShadowCompute;
 
     GLuint _mountainText;
 
@@ -88,22 +93,24 @@ class Viewer : public QGLWidget {
     GLuint _normalMap;
     GLuint _renderedGridMap;
     GLuint _renderedDepth;
+    GLuint _shadowMap;
 
     Shader *_noiseShader;
     Shader *_gridShader;
     Shader *_normalShader;
     Shader *_postProcessShader;
+    Shader *_shadowComputeShader;
 
     glm::mat4 _modelMat;
     glm::mat4 _viewMat;
     glm::mat4 _projMat;
 
     /* Debug shader */
-    Shader *_debugNoise;
-    Shader *_debugNormal;
+    Shader *_debugTextureShader;
 
     bool _noiseDebug;
     bool _normalDebug;
+    bool _shadowMapDebug;
 
     Camera *_cam;
     glm::vec3 _light;

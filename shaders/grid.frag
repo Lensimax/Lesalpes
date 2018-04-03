@@ -54,12 +54,6 @@ void main(){
 	}
 
 	outBuffer = phong(colorTexture.rgb, spec);
-	// outBuffer = phong(vec3(1.0,0.0,0.0));
-	// outBuffer = vec4(normalize(normalView), 1.0);
-
-	// outBuffer = texture(heightmap, texCoord);
-
-	// outBuffer = colorTexture;
 
 	outRendered = outBuffer;
 }

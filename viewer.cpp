@@ -18,6 +18,7 @@ Viewer::Viewer(const QGLFormat &format)
 
     _noiseDebug = false;
     _normalDebug = false;
+    _shadowMapDebug = false;
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
@@ -106,11 +107,16 @@ void Viewer::drawGrid(GLuint id){
 }
 
 
-void Viewer::drawDebugMap(GLuint id, GLuint idTexture, char *shaderName){
+void Viewer::drawDebugMap(GLuint id, GLuint idTexture){
+    glViewport(0,0,GRID_SIZE,GRID_SIZE);
+
+    glUseProgram(_debugTextureShader->id());
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /* active la texture */
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,idTexture);
-    glUniform1i(glGetUniformLocation(id,shaderName),0);
+    glUniform1i(glGetUniformLocation(id,"myTexture"),0);
 
     /* Dessine le carré */
     glBindVertexArray(_vaoQuad);
@@ -220,24 +226,17 @@ void Viewer::paintGL() {
 
     /* affichage de la noise map */
     if(_noiseDebug){
-        glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
-        glUseProgram(_debugNoise->id());
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        drawDebugMap(_debugNoise->id(), _heightMap, "noiseMap");
+        drawDebugMap(_debugTextureShader->id(), _heightMap);
     }    
 
     /* affichage de la normal map */
     if(_normalDebug){
-        glViewport(0,0,GRID_SIZE,GRID_SIZE);
+        drawDebugMap(_debugTextureShader->id(), _normalMap);
+    }
 
-        glUseProgram(_debugNormal->id());
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        drawDebugMap(_debugNormal->id(), _normalMap, "normalMap");
+    if(_shadowMapDebug){
+        drawDebugMap(_debugTextureShader->id(), _shadowMap);
     }
 
 
@@ -322,14 +321,14 @@ void Viewer::createShaders(){
     _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
     _gridShader = new Shader();
     _gridShader->load("shaders/grid.vert","shaders/grid.frag");
-    _debugNoise = new Shader();
-    _debugNoise->load("shaders/debugNoise.vert","shaders/debugNoise.frag");
-    _debugNormal = new Shader();
-    _debugNormal->load("shaders/debugNormal.vert","shaders/debugNormal.frag");
+    _debugTextureShader = new Shader();
+    _debugTextureShader->load("shaders/debugTexture.vert","shaders/debugTexture.frag");
     _normalShader = new Shader();
     _normalShader->load("shaders/normal.vert", "shaders/normal.frag");
     _postProcessShader = new Shader();
     _postProcessShader->load("shaders/postprocess.vert", "shaders/postprocess.frag");
+    _shadowComputeShader = new Shader();
+    _shadowComputeShader->load("shaders/shadow-map.vert", "shaders/shadow-map.frag");
 }
 
 /* Destruction shader */
@@ -337,10 +336,40 @@ void Viewer::createShaders(){
 void Viewer::deleteShaders() {
   delete _noiseShader; _noiseShader = NULL;
   delete _gridShader; _gridShader = NULL;
-  delete _debugNoise; _debugNoise = NULL;
-  delete _debugNormal; _debugNormal = NULL;
+  delete _debugTextureShader; _debugTextureShader = NULL;
   delete _normalShader; _normalShader = NULL;
   delete _postProcessShader; _postProcessShader = NULL;
+  delete _postProcessShader; _postProcessShader = NULL;
+  delete _shadowComputeShader; _shadowComputeShader = NULL;
+}
+
+void Viewer::createFBOShadowMap(){
+    glGenFramebuffers(1, &_fboShadowCompute);
+    glGenTextures(1,&_shadowMap);
+
+}
+
+void Viewer::initFBOShadowMap(){
+
+    glBindTexture(GL_TEXTURE_2D,_shadowMap);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,width(),height(),0,GL_DEPTH_COMPONENT,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER,_fboShadowCompute);
+
+    glBindTexture(GL_TEXTURE_2D,_shadowMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,_renderedDepth,0);
+
+    /* on desactive le buffer */
+     glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void Viewer::deleteFBOShadowMap(){
+    glDeleteFramebuffers(1,&_fboShadowCompute);
+    glDeleteTextures(1, &_shadowMap);
 }
 
 void Viewer::createFBOPostProcess(){
@@ -495,8 +524,7 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
         
         _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
         _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
-        _debugNoise->reload("shaders/debugNoise.vert","shaders/debugNoise.frag");
-        _debugNormal->reload("shaders/debugNormal.vert","shaders/debugNormal.frag");
+        _debugTextureShader->load("shaders/debugTexture.vert","shaders/debugTexture.frag");
         _normalShader->reload("shaders/normal.vert", "shaders/normal.frag");
         _postProcessShader->reload("shaders/postprocess.vert", "shaders/postprocess.frag");
 
@@ -508,6 +536,10 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
     if(ke->key()==Qt::Key_N){
         _normalDebug = !_normalDebug;
+    }
+
+    if(ke->key()==Qt::Key_S){
+        _shadowMapDebug = !_shadowMapDebug;
     }
 
 
