@@ -6,7 +6,7 @@ uniform sampler2D heightmap;
 in vec2 texcoord;
 
 
-layout(location = 0) out vec4 outNormals;
+layout(location = 1) out vec4 outNormals;
 
 float value(in vec4 c) {
 	// gradient of what:

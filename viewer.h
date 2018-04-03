@@ -51,6 +51,7 @@ class Viewer : public QGLWidget {
 
  private:
 
+    void drawVAO(GLuint id);
     void drawGrid(GLuint id);
     void drawDebugMap(GLuint id, GLuint idTexture, char *shaderName);
     void drawQuad();
@@ -89,6 +90,10 @@ class Viewer : public QGLWidget {
     bool _normalDebug;
 
     Mesh *_mesh;
+    Camera *_cam;
+
+
+    GLuint _buffers[5];
 
 
     QTimer *_timer;    // timer that controls the animation
