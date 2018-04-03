@@ -32,7 +32,7 @@ Viewer::Viewer(const QGLFormat &format)
 Viewer::~Viewer() {
     deleteVAO();
     deleteShaders();
-    deleteFBO();
+    deleteFBOComputing();
     deleteTextures();
     delete _timer;
     delete _cam;
@@ -126,7 +126,7 @@ void Viewer::drawQuad(){
 void Viewer::computePerlinNoise(GLuint id){
     /* on active le FBO pour créer la texturea de bruit de Perlin et 
     la texture de normal */
-    glBindFramebuffer(GL_FRAMEBUFFER,_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER,_fboComputing);
 
     /* on active le shader du bruit de Perlin */
     glUseProgram(id);
@@ -146,7 +146,7 @@ void Viewer::computePerlinNoise(GLuint id){
 }
 
 void Viewer::computeNormalMap(GLuint id){
-    glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, _fboComputing);
 
     glUseProgram(id);
 
@@ -174,7 +174,6 @@ void Viewer::paintGL() {
     computePerlinNoise(_noiseShader->id());
 
     computeNormalMap(_normalShader->id());
-
 
     
     /* On active le shader pour afficher la grille */
@@ -275,8 +274,8 @@ void Viewer::initializeGL() {
     createTextures();
 
     /* Crée et initialize le FBO */
-    createFBO();
-    initFBO();
+    createFBOComputing();
+    initFBOComputing();
 
 
 
@@ -311,16 +310,16 @@ void Viewer::deleteShaders() {
 
 /* Create FBO */
 
-void Viewer::createFBO(){
+void Viewer::createFBOComputing(){
     int nbFBO = 1;
 
-    glGenFramebuffers(nbFBO, &_fbo);
+    glGenFramebuffers(nbFBO, &_fboComputing);
     glGenTextures(1,&_heightMap);
     glGenTextures(1,&_normalMap);
 
 }
 
-void Viewer::initFBO(){
+void Viewer::initFBOComputing(){
 
     /* creation des textures */
 
@@ -342,7 +341,7 @@ void Viewer::initFBO(){
 
     /* on active le frameBufferObject */
     /* pour associer les textures */
-    glBindFramebuffer(GL_FRAMEBUFFER,_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER,_fboComputing);
 
     glBindTexture(GL_TEXTURE_2D,_heightMap);
     glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_heightMap,0);
@@ -354,8 +353,8 @@ void Viewer::initFBO(){
     glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void Viewer::deleteFBO(){
-  glDeleteFramebuffers(1,&_fbo);
+void Viewer::deleteFBOComputing(){
+  glDeleteFramebuffers(1,&_fboComputing);
   glDeleteTextures(1,&_heightMap);
   glDeleteTextures(1,&_normalMap);
 }
@@ -366,7 +365,7 @@ void Viewer::deleteFBO(){
 
 void Viewer::resizeGL(int width,int height) {
     glViewport(0,0,width,height);
-    initFBO();
+    initFBOComputing();
     updateGL();
 }
 

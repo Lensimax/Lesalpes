@@ -46,9 +46,9 @@ class Viewer : public QGLWidget {
 
 
 
-    void createFBO();
-    void initFBO();
-    void deleteFBO();
+    void createFBOComputing();
+    void initFBOComputing();
+    void deleteFBOComputing();
 
  private:
 
@@ -73,17 +73,19 @@ class Viewer : public QGLWidget {
     GLuint _terrain[2];
     GLuint _quad;
 
-    GLuint _fbo;
+    GLuint _fboComputing;
 
     GLuint _mountainText;
 
     /* Texture created */
     GLuint _heightMap;
     GLuint _normalMap;
+    GLuint _renderedGridMap;
 
     Shader *_noiseShader;
     Shader *_gridShader;
     Shader *_normalShader;
+    Shader *_postProcessShader;
 
     glm::mat4 _modelMat;
     glm::mat4 _viewMat;
