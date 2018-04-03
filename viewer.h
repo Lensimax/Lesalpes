@@ -23,7 +23,6 @@
 
 #include "grid.h"
 #include "shader.h"
-#include "meshLoader.h"
 #include "camera.h"
 
 class Viewer : public QGLWidget {
