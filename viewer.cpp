@@ -178,6 +178,10 @@ void Viewer::sendToPostProcessShader(GLuint id){
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
     glUniform1i(glGetUniformLocation(id, "renderedMap"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, _shadowMap);
+    glUniform1i(glGetUniformLocation(id, "shadowMap"), 1); 
 }
 
 void Viewer::drawFromTheLight(GLuint id){
