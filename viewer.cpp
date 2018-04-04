@@ -181,7 +181,7 @@ void Viewer::sendToPostProcessShader(GLuint id){
 }
 
 void Viewer::drawFromTheLight(GLuint id){
-    const float size = GRID_SIZE;
+    const float size = 2;
     glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
     glm::mat4 p   = glm::ortho<float>(-size,size,-size,size,-size,2*size);
     glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
@@ -241,7 +241,7 @@ void Viewer::paintGL() {
     glBindFramebuffer(GL_FRAMEBUFFER, _fboShadowCompute);
 
     glUseProgram(_shadowComputeShader->id());
-
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     drawFromTheLight(_shadowComputeShader->id());
 
