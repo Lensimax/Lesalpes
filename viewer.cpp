@@ -182,6 +182,16 @@ void Viewer::sendToPostProcessShader(GLuint id){
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _shadowMap);
     glUniform1i(glGetUniformLocation(id, "shadowMap"), 1); 
+
+    const float size = 2;
+    glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
+    glm::mat4 p   = glm::ortho<float>(-size,size,-size,size,-size,2*size);
+    glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
+    glm::mat4 m   = glm::mat4(1.0);
+    glm::mat4 mvp  = p*v*m;
+
+    /* on envoie la depthMap */
+    glUniformMatrix4fv(glGetUniformLocation(id, "mvpDepth"), 1, GL_FALSE, &mvp[0][0]);
 }
 
 void Viewer::drawFromTheLight(GLuint id){
@@ -380,7 +390,6 @@ void Viewer::deleteShaders() {
   delete _gridShader; _gridShader = NULL;
   delete _debugTextureShader; _debugTextureShader = NULL;
   delete _normalShader; _normalShader = NULL;
-  delete _postProcessShader; _postProcessShader = NULL;
   delete _postProcessShader; _postProcessShader = NULL;
   delete _shadowComputeShader; _shadowComputeShader = NULL;
 }

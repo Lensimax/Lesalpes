@@ -9,7 +9,7 @@ uniform mat4 projMat;
 uniform sampler2D heightmap;
 
 void main() {
-	vec2 texcoord = position.xy;
+	vec2 texcoord = position.xy * 0.5 + 0.5;
 	float height = texture(heightmap, texcoord).x;
 
 
