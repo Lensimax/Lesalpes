@@ -7,7 +7,7 @@
 using namespace std;
 
 /* taille d'un ligne de la grille */
-const unsigned int GRID_SIZE = 1024;
+const unsigned int GRID_SIZE = 512;
 
 
 Viewer::Viewer(const QGLFormat &format)
@@ -18,11 +18,13 @@ Viewer::Viewer(const QGLFormat &format)
 
     _noiseDebug = false;
     _normalDebug = false;
+    _shadowMapDebug = false;
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
 
     _cam  = new Camera();
+    _light = glm::vec3(0,0,1);
 
 
     _timer->setInterval(10);
@@ -33,6 +35,8 @@ Viewer::~Viewer() {
     deleteVAO();
     deleteShaders();
     deleteFBOComputing();
+    deleteFBOPostProcess();
+    deleteFBOShadowMap();
     deleteTextures();
     delete _timer;
     delete _cam;
@@ -79,6 +83,8 @@ void Viewer::drawGrid(GLuint id){
 
     glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(_cam->mdvMatrix()[0][0]));
     glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_cam->projMatrix()[0][0]));
+    glUniformMatrix3fv(glGetUniformLocation(id,"normalMatrix"),1,GL_FALSE,&(_cam->normalMatrix()[0][0]));
+    glUniform3fv(glGetUniformLocation(id, "lightVector"), 1, &(_light[0]));
 
 
     glActiveTexture(GL_TEXTURE0);
@@ -103,11 +109,16 @@ void Viewer::drawGrid(GLuint id){
 }
 
 
-void Viewer::drawDebugMap(GLuint id, GLuint idTexture, char *shaderName){
+void Viewer::drawDebugMap(GLuint id, GLuint idTexture){
+    glViewport(0,0,GRID_SIZE,GRID_SIZE);
+
+    glUseProgram(_debugTextureShader->id());
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /* active la texture */
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,idTexture);
-    glUniform1i(glGetUniformLocation(id,shaderName),0);
+    glUniform1i(glGetUniformLocation(id,"myTexture"),0);
 
     /* Dessine le carré */
     glBindVertexArray(_vaoQuad);
@@ -167,6 +178,34 @@ void Viewer::sendToPostProcessShader(GLuint id){
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
     glUniform1i(glGetUniformLocation(id, "renderedMap"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, _shadowMap);
+    glUniform1i(glGetUniformLocation(id, "shadowMap"), 1); 
+}
+
+void Viewer::drawFromTheLight(GLuint id){
+    const float size = 2;
+    glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
+    glm::mat4 p   = glm::ortho<float>(-size,size,-size,size,-size,2*size);
+    glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
+    glm::mat4 m   = glm::mat4(1.0);
+    glm::mat4 mv  = v*m;
+
+    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(mv[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(p[0][0]));
+
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glUniform1i(glGetUniformLocation(id, "heightmap"), 0);   
+    
+    /* on dessine la grille */
+    glBindVertexArray(_vaoTerrain);
+    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
+
+    /* on desactive le vertex array */
+    glBindVertexArray(0);    
 }
 
 
@@ -202,8 +241,18 @@ void Viewer::paintGL() {
     /* on desactive le FBO */
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    /* on affiche la texture qu'on vient de créer */
+    /* pour le calcul des ombres */
+    glBindFramebuffer(GL_FRAMEBUFFER, _fboShadowCompute);
 
+    glUseProgram(_shadowComputeShader->id());
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    drawFromTheLight(_shadowComputeShader->id());
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+
+    /* on affiche la texture qu'on vient de créer */
     glUseProgram(_postProcessShader->id());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -217,24 +266,17 @@ void Viewer::paintGL() {
 
     /* affichage de la noise map */
     if(_noiseDebug){
-        glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
-        glUseProgram(_debugNoise->id());
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        drawDebugMap(_debugNoise->id(), _heightMap, "noiseMap");
+        drawDebugMap(_debugTextureShader->id(), _heightMap);
     }    
 
     /* affichage de la normal map */
     if(_normalDebug){
-        glViewport(0,0,GRID_SIZE,GRID_SIZE);
+        drawDebugMap(_debugTextureShader->id(), _normalMap);
+    }
 
-        glUseProgram(_debugNormal->id());
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        drawDebugMap(_debugNormal->id(), _normalMap, "normalMap");
+    if(_shadowMapDebug){
+        drawDebugMap(_debugTextureShader->id(), _shadowMap);
     }
 
 
@@ -305,6 +347,8 @@ void Viewer::initializeGL() {
     initFBOComputing();
     createFBOPostProcess();
     initFBOPostProcess();
+    createFBOShadowMap();
+    initFBOShadowMap();
 
 
 
@@ -319,14 +363,14 @@ void Viewer::createShaders(){
     _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
     _gridShader = new Shader();
     _gridShader->load("shaders/grid.vert","shaders/grid.frag");
-    _debugNoise = new Shader();
-    _debugNoise->load("shaders/debugNoise.vert","shaders/debugNoise.frag");
-    _debugNormal = new Shader();
-    _debugNormal->load("shaders/debugNormal.vert","shaders/debugNormal.frag");
+    _debugTextureShader = new Shader();
+    _debugTextureShader->load("shaders/debugTexture.vert","shaders/debugTexture.frag");
     _normalShader = new Shader();
     _normalShader->load("shaders/normal.vert", "shaders/normal.frag");
     _postProcessShader = new Shader();
     _postProcessShader->load("shaders/postprocess.vert", "shaders/postprocess.frag");
+    _shadowComputeShader = new Shader();
+    _shadowComputeShader->load("shaders/shadow-map.vert", "shaders/shadow-map.frag");
 }
 
 /* Destruction shader */
@@ -334,10 +378,40 @@ void Viewer::createShaders(){
 void Viewer::deleteShaders() {
   delete _noiseShader; _noiseShader = NULL;
   delete _gridShader; _gridShader = NULL;
-  delete _debugNoise; _debugNoise = NULL;
-  delete _debugNormal; _debugNormal = NULL;
+  delete _debugTextureShader; _debugTextureShader = NULL;
   delete _normalShader; _normalShader = NULL;
   delete _postProcessShader; _postProcessShader = NULL;
+  delete _postProcessShader; _postProcessShader = NULL;
+  delete _shadowComputeShader; _shadowComputeShader = NULL;
+}
+
+void Viewer::createFBOShadowMap(){
+    glGenFramebuffers(1, &_fboShadowCompute);
+    glGenTextures(1,&_shadowMap);
+
+}
+
+void Viewer::initFBOShadowMap(){
+
+    glBindTexture(GL_TEXTURE_2D,_shadowMap);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,width(),height(),0,GL_DEPTH_COMPONENT,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER,_fboShadowCompute);
+
+    glBindTexture(GL_TEXTURE_2D,_shadowMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,_shadowMap,0);
+
+    /* on desactive le buffer */
+     glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void Viewer::deleteFBOShadowMap(){
+    glDeleteFramebuffers(1,&_fboShadowCompute);
+    glDeleteTextures(1, &_shadowMap);
 }
 
 void Viewer::createFBOPostProcess(){
@@ -443,20 +517,36 @@ void Viewer::resizeGL(int width,int height) {
 void Viewer::mousePressEvent(QMouseEvent *me) {
     const glm::vec2 p((float)me->x(),(float)(height()-me->y()));
 
-  if(me->button()==Qt::LeftButton) {
-    _cam->initRotation(p);
-  } else if(me->button()==Qt::MidButton) {
-    _cam->initMoveZ(p);
-  } else if(me->button()==Qt::RightButton) {
-  } 
+    if(me->button()==Qt::LeftButton) {
+        _cam->initRotation(p);
+        _mode = false;
+    } else if(me->button()==Qt::MidButton) {
+        _cam->initMoveZ(p);
+        _mode = false;
+    } else if(me->button()==Qt::RightButton) {
+        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
+        _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
+        _light = glm::normalize(_light);
+        _mode = true;
+    } 
 
-  updateGL();
+    updateGL();
 }
 
 void Viewer::mouseMoveEvent(QMouseEvent *me) {
     const glm::vec2 p((float)me->x(),(float)(height()-me->y()));
- 
-    _cam->move(p);
+
+    if(_mode) {
+        // light mode
+        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
+        _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
+        _light = glm::normalize(_light);
+    } else {
+    // camera mode
+        _cam->move(p);
+    }
 
     updateGL();
 }
@@ -476,8 +566,7 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
         
         _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
         _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
-        _debugNoise->reload("shaders/debugNoise.vert","shaders/debugNoise.frag");
-        _debugNormal->reload("shaders/debugNormal.vert","shaders/debugNormal.frag");
+        _debugTextureShader->load("shaders/debugTexture.vert","shaders/debugTexture.frag");
         _normalShader->reload("shaders/normal.vert", "shaders/normal.frag");
         _postProcessShader->reload("shaders/postprocess.vert", "shaders/postprocess.frag");
 
@@ -489,6 +578,10 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
     if(ke->key()==Qt::Key_N){
         _normalDebug = !_normalDebug;
+    }
+
+    if(ke->key()==Qt::Key_S){
+        _shadowMapDebug = !_shadowMapDebug;
     }
 
 
