@@ -24,7 +24,7 @@ Viewer::Viewer(const QGLFormat &format)
 
 
     _cam  = new Camera();
-    _light = glm::vec3(0,0,1);
+
 
 
     _timer->setInterval(10);
@@ -191,19 +191,18 @@ void Viewer::sendToPostProcessShader(GLuint id){
     glm::mat4 mvp  = p*v*m;
 
     /* on envoie la depthMap */
-    glUniformMatrix4fv(glGetUniformLocation(id, "mvpDepth"), 1, GL_FALSE, &mvp[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(id, "mdvDepth"), 1, GL_FALSE, &mvp[0][0]);
 }
 
 void Viewer::drawFromTheLight(GLuint id){
-    const float size = 2;
+    const float size = 1;
     glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
     glm::mat4 p   = glm::ortho<float>(-size,size,-size,size,-size,2*size);
     glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
     glm::mat4 m   = glm::mat4(1.0);
-    glm::mat4 mv  = v*m;
+    glm::mat4 mvp  = p*v*m;
 
-    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(mv[0][0]));
-    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(p[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"mvpMat"),1,GL_FALSE,&(mvp[0][0]));
 
 
     glActiveTexture(GL_TEXTURE0);
@@ -253,6 +252,10 @@ void Viewer::paintGL() {
 
     /* pour le calcul des ombres */
     glBindFramebuffer(GL_FRAMEBUFFER, _fboShadowCompute);
+    glViewport(0,0, GRID_SIZE, GRID_SIZE);
+
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // glViewport(0,0, width(), height());
 
     glUseProgram(_shadowComputeShader->id());
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -260,7 +263,7 @@ void Viewer::paintGL() {
     drawFromTheLight(_shadowComputeShader->id());
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
+    glViewport(0,0, width(), height());
 
     /* on affiche la texture qu'on vient de créer */
     glUseProgram(_postProcessShader->id());
@@ -403,7 +406,7 @@ void Viewer::createFBOShadowMap(){
 void Viewer::initFBOShadowMap(){
 
     glBindTexture(GL_TEXTURE_2D,_shadowMap);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,width(),height(),0,GL_DEPTH_COMPONENT,GL_FLOAT,NULL);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,512,512,0,GL_DEPTH_COMPONENT,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -537,6 +540,7 @@ void Viewer::mousePressEvent(QMouseEvent *me) {
         _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
         _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
         _light = glm::normalize(_light);
+        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);
         _mode = true;
     } 
 
@@ -552,6 +556,7 @@ void Viewer::mouseMoveEvent(QMouseEvent *me) {
         _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
         _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
         _light = glm::normalize(_light);
+        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);
     } else {
     // camera mode
         _cam->move(p);

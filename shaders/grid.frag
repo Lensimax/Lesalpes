@@ -40,7 +40,7 @@ void main(){
 
 	if(height > 0.85){ // en bas
 
-		colorTexture = vec4(0.0,0.4,1.0,1.0);
+		colorTexture = vec4(0.9,0.9,0.9,1);		
 		spec = 200.0;
 
 	} else if(height <= 0.85 && height > 0.2){ // au milieu
@@ -49,7 +49,8 @@ void main(){
 		spec = 120.0;
 
 	} else { // en haut
-		colorTexture = vec4(0.9,0.9,0.9,1);
+		colorTexture = vec4(0.0,0.4,1.0,1.0);
+		
 		spec = 2.0;
 	}
 

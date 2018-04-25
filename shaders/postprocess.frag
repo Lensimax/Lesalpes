@@ -13,14 +13,14 @@ void main() {
 
 	/* Calcul des ombres */
 	/* profondeur par rapport a la lumière */
-	/*float lz = texture(shadowMap, shadowCoord.xy).x;
+	float lz = texture(shadowMap, shadowCoord.xy).x;
 
 	float bias = 0.005;
 	float v = 1.0;
 
 	if(lz + bias < shadowCoord.z){
-		v = 0.2;
-	}*/
+		v = 1.0;
+	}
 
 
 
