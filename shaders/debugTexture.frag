@@ -6,4 +6,5 @@ uniform sampler2D myTexture;
 
 void main() {
  	outBuffer = texelFetch(myTexture,ivec2(gl_FragCoord.xy),0);
+ 	// outBuffer = texture(myTexture, gl_FragCoord.xy);
 }

@@ -17,10 +17,14 @@ out vec3 normalView;
 out vec3 eyeView;
 
 void main() {
-	texCoord = position.xy *0.5 + 0.5;
+
+	texCoord = (position *0.5 + 0.5).xy;
 
 	/* creation de la hauteur */
-	float height =  texture(heightmap,texCoord).z;
+	float height = texture(heightmap,texCoord).z;
+
+	height = (height - 0.5) * (-1); // pour recentrer au (0,0)
+
 	vec4 computedPosition = vec4(position.x, position.y, height, 1);
 
 	/* pour phong */

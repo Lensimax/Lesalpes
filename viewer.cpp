@@ -23,7 +23,9 @@ Viewer::Viewer(const QGLFormat &format)
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
 
-    _cam  = new Camera();
+    _light = glm::vec3(0,1,0);
+
+    _cam  = new Camera(1, glm::vec3(0,0,0), 0);
 
 
 
@@ -45,8 +47,7 @@ Viewer::~Viewer() {
 
 void Viewer::createVAO() {
 
-  const GLfloat quadData[] = {
-    -1.0f,-1.0f,0.0f, 1.0f,-1.0f,0.0f, -1.0f,1.0f,0.0f, -1.0f,1.0f,0.0f, 1.0f,-1.0f,0.0f, 1.0f,1.0f,0.0f };
+  const GLfloat quadData[] = {-1.0f,-1.0f,0.0f, 1.0f,-1.0f,0.0f, -1.0f,1.0f,0.0f, -1.0f,1.0f,0.0f, 1.0f,-1.0f,0.0f, 1.0f,1.0f,0.0f };
 
   glGenBuffers(2,_terrain);
   glGenBuffers(1,&_quad);
@@ -61,6 +62,7 @@ void Viewer::createVAO() {
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_terrain[1]); // indices
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,_grid->nbFaces()*3*sizeof(int),_grid->faces(),GL_STATIC_DRAW);
+  glEnableVertexAttribArray(1);
 
   // create the VBO associated with the screen quad
   glBindVertexArray(_vaoQuad);
@@ -254,8 +256,8 @@ void Viewer::paintGL() {
     glBindFramebuffer(GL_FRAMEBUFFER, _fboShadowCompute);
     glViewport(0,0, GRID_SIZE, GRID_SIZE);
 
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // glViewport(0,0, width(), height());
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0,0, width(), height());
 
     glUseProgram(_shadowComputeShader->id());
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -536,11 +538,11 @@ void Viewer::mousePressEvent(QMouseEvent *me) {
         _cam->initMoveZ(p);
         _mode = false;
     } else if(me->button()==Qt::RightButton) {
-        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        /*_light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
         _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
         _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
         _light = glm::normalize(_light);
-        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);
+        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);*/
         _mode = true;
     } 
 
@@ -552,11 +554,11 @@ void Viewer::mouseMoveEvent(QMouseEvent *me) {
 
     if(_mode) {
         // light mode
-        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        /*_light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
         _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
         _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
         _light = glm::normalize(_light);
-        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);
+        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);*/
     } else {
     // camera mode
         _cam->move(p);
