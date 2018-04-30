@@ -35,6 +35,7 @@ Viewer::~Viewer() {
     deleteShaders();
     delete _timer;
     delete _cam;
+    delete _grid;
 }
 
 
@@ -79,12 +80,15 @@ void Viewer::createShaders(){
     _debugShader->load("shaders/debugTextures.vert","shaders/debugTextures.frag");
     _normalShader = new Shader();
     _normalShader->load("shaders/normal.vert","shaders/normal.frag");
+    _gridShader = new Shader();
+    _gridShader->load("shaders/grid.vert","shaders/grid.frag");
 }
 
 void Viewer::deleteShaders(){
     delete _noiseShader; _noiseShader = NULL;
     delete _debugShader; _debugShader = NULL;
     delete _normalShader; _normalShader = NULL;
+    delete _gridShader; _gridShader = NULL;
 }
 
 void Viewer::createFBOfirstPass(){
@@ -136,6 +140,29 @@ void Viewer::drawQuad(){
     glBindVertexArray(0);
 }
 
+void Viewer::drawGrid(GLuint id){
+    glUseProgram(id);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(_cam->mdvMatrix()[0][0]));
+    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_cam->projMatrix()[0][0]));
+    glUniformMatrix3fv(glGetUniformLocation(id,"normalMatrix"),1,GL_FALSE,&(_cam->normalMatrix()[0][0]));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glUniform1i(glGetUniformLocation(id, "heightmap"), 0); 
+
+    /* on dessine la grille */
+    glBindVertexArray(_vaoTerrain);
+    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
+
+    /* on desactive le vertex array */
+    glBindVertexArray(0);
+
+
+}
+
 void Viewer::computeHeightMap(GLuint id){
     glUseProgram(id);
 
@@ -159,6 +186,8 @@ void Viewer::computeNormalMap(GLuint id){
 
 void Viewer::paintGL() {
 
+    /* first pass */
+
     glBindFramebuffer(GL_FRAMEBUFFER, _fbofirstPass);
 
     glViewport(0,0,GRID_SIZE,GRID_SIZE);
@@ -177,7 +206,11 @@ void Viewer::paintGL() {
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
 
-    
+    /* affichage de la grille */
+
+    glViewport(0,0,width(), height());    
+
+    drawGrid(_gridShader->id());
 
 
     if(debugHeightMap){
@@ -293,7 +326,9 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
     // key r: reload shaders 
     if(ke->key()==Qt::Key_R) {
         _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
-        _debugShader->load("shaders/debugTextures.vert","shaders/debugTextures.frag");
+        _debugShader->reload("shaders/debugTextures.vert","shaders/debugTextures.frag");
+        _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
+        _normalShader->reload("shaders/normal.vert","shaders/normal.frag");
 
     }
 

@@ -83,6 +83,12 @@ class Viewer : public QGLWidget {
     bool debugHeightMap;
     bool debugNormalMap;
 
+    /* second pass */
+
+    Shader *_gridShader;
+
+    void drawGrid(GLuint id);
+
 
     Camera *_cam;
     glm::vec3 _light;
