@@ -49,6 +49,9 @@ class Viewer : public QGLWidget {
 
  private:
 
+    void drawQuad();
+    void computeHeightMap(GLuint id);
+
     Shader *_noiseShader;
     
 

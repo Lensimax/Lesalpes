@@ -30,6 +30,7 @@ Viewer::Viewer(const QGLFormat &format)
 
 Viewer::~Viewer() {
     deleteVAO();
+    deleteShaders();
     delete _timer;
     delete _cam;
 }
@@ -78,17 +79,37 @@ void Viewer::deleteShaders(){
     delete _noiseShader; _noiseShader = NULL;
 }
 
+// void Viewer::createFBOfirstPass(){
 
+// }
 
+// void Viewer::deleteFBOfirstPass(){
+    
+// }
 
+void Viewer::drawQuad(){
+    glBindVertexArray(_vaoQuad);
+    glDrawArrays(GL_TRIANGLES,0,6);
+    glBindVertexArray(0);
+}
+
+void Viewer::computeHeightMap(GLuint id){
+    glUseProgram(id);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    drawQuad();
+}
 
 void Viewer::paintGL() {
+    glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
-    glViewport(0, 0, width(), height());
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
 
-    glUseProgram(1);
 
-
+    computeHeightMap(_noiseShader->id());
+    
     /* on desactive le shader */
     glUseProgram(0);
 
@@ -118,6 +139,8 @@ void Viewer::initializeGL() {
 
     _cam->initialize(width(),height(),true);
 
+    createShaders();
+    createVAO();
 
 
     // starts the timer 
