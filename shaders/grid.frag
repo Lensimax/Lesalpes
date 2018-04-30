@@ -3,6 +3,10 @@
 out vec4 outBuffer;
 
 
+uniform sampler2D heightMap;
+
+in vec2 texCoord;
+
 
 // layout(location = 0) out vec4 outRendered;
 
@@ -26,5 +30,5 @@ out vec4 outBuffer;
 
 void main(){
 
-	outBuffer = vec4(1,0,0,1);
+	outBuffer = texture(heightMap, texCoord);
 }
