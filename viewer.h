@@ -46,34 +46,10 @@ class Viewer : public QGLWidget {
 
 
 
-    void createFBOComputing();
-    void initFBOComputing();
-    void deleteFBOComputing();
-
-    void createFBOPostProcess();
-    void initFBOPostProcess();
-    void deleteFBOPostProcess();
-
-    void createFBOShadowMap();
-    void initFBOShadowMap();
-    void deleteFBOShadowMap();
-
 
  private:
 
-    void loadTexture(GLuint id,const char *filename);
-    void createTextures();
-    void deleteTextures();
-
-    void sendToPostProcessShader(GLuint id);
-
-    void drawVAO(GLuint id);
-    void drawGrid(GLuint id);
-    void drawDebugMap(GLuint id, GLuint idTexture);
-    void drawQuad();
-    void drawFromTheLight(GLuint id);
-    void computePerlinNoise(GLuint id);
-    void computeNormalMap(GLuint id);
+    Shader *_noiseShader;
     
 
     Grid *_grid; // notre grille avec le terrain
@@ -83,35 +59,8 @@ class Viewer : public QGLWidget {
     GLuint _terrain[2];
     GLuint _quad;
 
-    GLuint _fboComputing;
-    GLuint _fboPostProcess;
-    GLuint _fboShadowCompute;
 
-    GLuint _mountainText;
 
-    /* Texture created */
-    GLuint _heightMap;
-    GLuint _normalMap;
-    GLuint _renderedGridMap;
-    GLuint _renderedDepth;
-    GLuint _shadowMap;
-
-    Shader *_noiseShader;
-    Shader *_gridShader;
-    Shader *_normalShader;
-    Shader *_postProcessShader;
-    Shader *_shadowComputeShader;
-
-    glm::mat4 _modelMat;
-    glm::mat4 _viewMat;
-    glm::mat4 _projMat;
-
-    /* Debug shader */
-    Shader *_debugTextureShader;
-
-    bool _noiseDebug;
-    bool _normalDebug;
-    bool _shadowMapDebug;
 
     Camera *_cam;
     glm::vec3 _light;

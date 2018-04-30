@@ -16,14 +16,9 @@ Viewer::Viewer(const QGLFormat &format)
 
     setlocale(LC_ALL,"C");
 
-    _noiseDebug = false;
-    _normalDebug = false;
-    _shadowMapDebug = false;
 
     _grid = new Grid(GRID_SIZE,-1.0f, 1.0f);
 
-
-    _light = glm::vec3(0,1,0);
 
     _cam  = new Camera(1, glm::vec3(0,0,0), 0);
 
@@ -35,11 +30,6 @@ Viewer::Viewer(const QGLFormat &format)
 
 Viewer::~Viewer() {
     deleteVAO();
-    deleteShaders();
-    deleteFBOComputing();
-    deleteFBOPostProcess();
-    deleteFBOShadowMap();
-    deleteTextures();
     delete _timer;
     delete _cam;
 }
@@ -79,258 +69,33 @@ void Viewer::deleteVAO() {
     glDeleteVertexArrays(1,&_vaoQuad);
 }
 
+void Viewer::createShaders(){
+    _noiseShader = new Shader();
+    _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
+}
 
-
-void Viewer::drawGrid(GLuint id){
-
-    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE,&(_cam->mdvMatrix()[0][0]));
-    glUniformMatrix4fv(glGetUniformLocation(id,"projMat"),1,GL_FALSE,&(_cam->projMatrix()[0][0]));
-    glUniformMatrix3fv(glGetUniformLocation(id,"normalMatrix"),1,GL_FALSE,&(_cam->normalMatrix()[0][0]));
-    glUniform3fv(glGetUniformLocation(id, "lightVector"), 1, &(_light[0]));
-
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,_heightMap);
-    glUniform1i(glGetUniformLocation(id, "heightmap"), 0);    
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D,_normalMap);
-    glUniform1i(glGetUniformLocation(id, "normalMap"), 1); 
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D,_mountainText);
-    glUniform1i(glGetUniformLocation(id, "mountainText"), 2); 
-
-    /* on dessine la grille */
-    glBindVertexArray(_vaoTerrain);
-    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
-
-    /* on desactive le vertex array */
-    glBindVertexArray(0);
-
+void Viewer::deleteShaders(){
+    delete _noiseShader; _noiseShader = NULL;
 }
 
 
-void Viewer::drawDebugMap(GLuint id, GLuint idTexture){
-    glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
-    glUseProgram(_debugTextureShader->id());
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    /* active la texture */
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,idTexture);
-    glUniform1i(glGetUniformLocation(id,"myTexture"),0);
-
-    /* Dessine le carré */
-    glBindVertexArray(_vaoQuad);
-    glDrawArrays(GL_TRIANGLES,0,6);
-
-    /* desactive le vertex array */
-    glBindVertexArray(0);
-}
-
-void Viewer::drawQuad(){
-    glBindVertexArray(_vaoQuad);
-    glDrawArrays(GL_TRIANGLES,0,6);
-    glBindVertexArray(0);
-}
-
-void Viewer::computePerlinNoise(GLuint id){
-    /* on active le FBO pour créer la texturea de bruit de Perlin et 
-    la texture de normal */
-    glBindFramebuffer(GL_FRAMEBUFFER,_fboComputing);
-
-    /* on active le shader du bruit de Perlin */
-    glUseProgram(id);
-
-    /* on indique quelles textures on veut tracer */
-    GLenum bufferlist [] = {GL_COLOR_ATTACHMENT0};
-    glDrawBuffers(1,bufferlist);
-
-    /* on clear les buffers */ 
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    /* on dessine le carré */
-    drawQuad();
-
-    /* desactive le FBO */
-    glBindFramebuffer(GL_FRAMEBUFFER,0);
-}
-
-void Viewer::computeNormalMap(GLuint id){
-    glBindFramebuffer(GL_FRAMEBUFFER, _fboComputing);
-
-    glUseProgram(id);
-
-    GLenum bufferlist [] = {GL_COLOR_ATTACHMENT1};
-    glDrawBuffers(1,bufferlist);    
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,_heightMap);
-    glUniform1i(glGetUniformLocation(id, "heightmap"), 0);
-
-    drawQuad();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void Viewer::sendToPostProcessShader(GLuint id){
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
-    glUniform1i(glGetUniformLocation(id, "renderedMap"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, _shadowMap);
-    glUniform1i(glGetUniformLocation(id, "shadowMap"), 1); 
-
-    const float size = 2;
-    glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
-    glm::mat4 p   = glm::ortho<float>(-size,size,-size,size,-size,2*size);
-    glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
-    glm::mat4 m   = glm::mat4(1.0);
-    glm::mat4 mvp  = p*v*m;
-
-    /* on envoie la depthMap */
-    glUniformMatrix4fv(glGetUniformLocation(id, "mdvDepth"), 1, GL_FALSE, &mvp[0][0]);
-}
-
-void Viewer::drawFromTheLight(GLuint id){
-    const float size = 1;
-    glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
-    glm::mat4 p   = glm::ortho<float>(-size,size,-size,size,-size,2*size);
-    glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
-    glm::mat4 m   = glm::mat4(1.0);
-    glm::mat4 mvp  = p*v*m;
-
-    glUniformMatrix4fv(glGetUniformLocation(id,"mvpMat"),1,GL_FALSE,&(mvp[0][0]));
-
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,_heightMap);
-    glUniform1i(glGetUniformLocation(id, "heightmap"), 0);   
-    
-    /* on dessine la grille */
-    glBindVertexArray(_vaoTerrain);
-    glDrawElements(GL_TRIANGLES,3*_grid->nbFaces(),GL_UNSIGNED_INT,(void *)0);
-
-    /* on desactive le vertex array */
-    glBindVertexArray(0);    
-}
 
 
 void Viewer::paintGL() {
 
-    glViewport(0,0,GRID_SIZE,GRID_SIZE);
+    glViewport(0, 0, width(), height());
 
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    
-    computePerlinNoise(_noiseShader->id());
-
-    computeNormalMap(_normalShader->id());
-
-    
-    /* On active le shader pour afficher la grille */
-    glViewport(0,0,width(),height());
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
-
-    glUseProgram(_gridShader->id());
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, _fboPostProcess);
-
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    /* on fait un rendu dans la texture */
-    drawGrid(_gridShader->id());
-
-    /* on desactive le FBO */
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    /* pour le calcul des ombres */
-    glBindFramebuffer(GL_FRAMEBUFFER, _fboShadowCompute);
-    glViewport(0,0, GRID_SIZE, GRID_SIZE);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0,0, width(), height());
-
-    glUseProgram(_shadowComputeShader->id());
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    drawFromTheLight(_shadowComputeShader->id());
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0,0, width(), height());
-
-    /* on affiche la texture qu'on vient de créer */
-    glUseProgram(_postProcessShader->id());
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(1);
 
 
-    /* on envoie ce que l'on veut au shader de PostProcess */
-    sendToPostProcessShader(_postProcessShader->id());
-
-    drawQuad();
-
-
-
-    /* affichage de la noise map */
-    if(_noiseDebug){
-
-        drawDebugMap(_debugTextureShader->id(), _heightMap);
-    }    
-
-    /* affichage de la normal map */
-    if(_normalDebug){
-        drawDebugMap(_debugTextureShader->id(), _normalMap);
-    }
-
-    if(_shadowMapDebug){
-        drawDebugMap(_debugTextureShader->id(), _shadowMap);
-    }
-
-
-    /* On desactive le shader actif */
+    /* on desactive le shader */
     glUseProgram(0);
-    glBindVertexArray(0);
+
+
+
 }
 
-void Viewer::loadTexture(GLuint id,const char *filename) {
-    // load image 
-    QImage image = QGLWidget::convertToGLFormat(QImage(filename));
-
-    // activate texture 
-    glBindTexture(GL_TEXTURE_2D,id);
-
-    // set texture parameters 
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); 
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_MIRRORED_REPEAT);
-
-    // store texture in the GPU
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,image.width(),image.height(),0,
-           GL_RGBA,GL_UNSIGNED_BYTE,(const GLvoid *)image.bits());
-
-    // generate mipmaps 
-    glGenerateMipmap(GL_TEXTURE_2D);
-}
-
-void Viewer::createTextures(){
-
-    glGenTextures(1,&_mountainText);
-
-    loadTexture(_mountainText, "textures/texture-mountain.jpg");
-}
-
-void Viewer::deleteTextures(){
-    glDeleteTextures(1,&_mountainText);
-}
 
 
 void Viewer::initializeGL() {
@@ -353,169 +118,14 @@ void Viewer::initializeGL() {
 
     _cam->initialize(width(),height(),true);
 
-    createShaders();
-    createVAO();
-    createTextures();
-
-    /* Crée et initialize le FBO */
-    createFBOComputing();
-    initFBOComputing();
-    createFBOPostProcess();
-    initFBOPostProcess();
-    createFBOShadowMap();
-    initFBOShadowMap();
-
 
 
     // starts the timer 
     _timer->start();
 }
 
-/* Creation shader */
 
-void Viewer::createShaders(){
-    _noiseShader = new Shader();
-    _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
-    _gridShader = new Shader();
-    _gridShader->load("shaders/grid.vert","shaders/grid.frag");
-    _debugTextureShader = new Shader();
-    _debugTextureShader->load("shaders/debugTexture.vert","shaders/debugTexture.frag");
-    _normalShader = new Shader();
-    _normalShader->load("shaders/normal.vert", "shaders/normal.frag");
-    _postProcessShader = new Shader();
-    _postProcessShader->load("shaders/postprocess.vert", "shaders/postprocess.frag");
-    _shadowComputeShader = new Shader();
-    _shadowComputeShader->load("shaders/shadow-map.vert", "shaders/shadow-map.frag");
-}
 
-/* Destruction shader */
-
-void Viewer::deleteShaders() {
-  delete _noiseShader; _noiseShader = NULL;
-  delete _gridShader; _gridShader = NULL;
-  delete _debugTextureShader; _debugTextureShader = NULL;
-  delete _normalShader; _normalShader = NULL;
-  delete _postProcessShader; _postProcessShader = NULL;
-  delete _shadowComputeShader; _shadowComputeShader = NULL;
-}
-
-void Viewer::createFBOShadowMap(){
-    glGenFramebuffers(1, &_fboShadowCompute);
-    glGenTextures(1,&_shadowMap);
-
-}
-
-void Viewer::initFBOShadowMap(){
-
-    glBindTexture(GL_TEXTURE_2D,_shadowMap);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,512,512,0,GL_DEPTH_COMPONENT,GL_FLOAT,NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glBindFramebuffer(GL_FRAMEBUFFER,_fboShadowCompute);
-
-    glBindTexture(GL_TEXTURE_2D,_shadowMap);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,_shadowMap,0);
-
-    /* on desactive le buffer */
-     glBindFramebuffer(GL_FRAMEBUFFER,0);
-}
-
-void Viewer::deleteFBOShadowMap(){
-    glDeleteFramebuffers(1,&_fboShadowCompute);
-    glDeleteTextures(1, &_shadowMap);
-}
-
-void Viewer::createFBOPostProcess(){
-    glGenFramebuffers(1, &_fboPostProcess);
-    glGenTextures(1,&_renderedGridMap);
-    glGenTextures(1, &_renderedDepth);
-}
-
-void Viewer::initFBOPostProcess(){
-
-    glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,width(),height(),0,GL_RGBA,GL_FLOAT,NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glBindTexture(GL_TEXTURE_2D,_renderedDepth);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,width(),height(),0,GL_DEPTH_COMPONENT,GL_FLOAT,NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glBindFramebuffer(GL_FRAMEBUFFER,_fboPostProcess);
-
-    glBindTexture(GL_TEXTURE_2D,_renderedGridMap);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_renderedGridMap,0);
-
-    glBindTexture(GL_TEXTURE_2D,_renderedDepth);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,_renderedDepth,0);
-
-    /* on desactive le buffer */
-    glBindFramebuffer(GL_FRAMEBUFFER,0);
-}
-
-void Viewer::deleteFBOPostProcess(){
-    glDeleteFramebuffers(1,&_fboPostProcess);
-    glDeleteTextures(1,&_renderedGridMap);
-    glDeleteTextures(1, &_renderedDepth);
-}
-
-/* Create FBO */
-
-void Viewer::createFBOComputing(){
-    glGenFramebuffers(1, &_fboComputing);
-    glGenTextures(1,&_heightMap);
-    glGenTextures(1,&_normalMap);
-
-}
-
-void Viewer::initFBOComputing(){
-
-    /* creation des textures */
-
-    /* creation de la texture avec le bruit de Perlin */
-    /* la taille est égale au nombre de cases de la grille */
-    glBindTexture(GL_TEXTURE_2D,_heightMap);
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glBindTexture(GL_TEXTURE_2D,_normalMap);
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    /* on active le frameBufferObject */
-    /* pour associer les textures */
-    glBindFramebuffer(GL_FRAMEBUFFER,_fboComputing);
-
-    glBindTexture(GL_TEXTURE_2D,_heightMap);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_heightMap,0);
-
-    glBindTexture(GL_TEXTURE_2D,_normalMap);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,_normalMap,0);
-
-    /* on desactive le buffer */
-    glBindFramebuffer(GL_FRAMEBUFFER,0);
-}
-
-void Viewer::deleteFBOComputing(){
-  glDeleteFramebuffers(1,&_fboComputing);
-  glDeleteTextures(1,&_heightMap);
-  glDeleteTextures(1,&_normalMap);
-}
 
 
 /* Handler graphique */
@@ -523,8 +133,6 @@ void Viewer::deleteFBOComputing(){
 
 void Viewer::resizeGL(int width,int height) {
     glViewport(0,0,width,height);
-    initFBOComputing();
-    initFBOPostProcess();
     updateGL();
 }
 
@@ -538,11 +146,10 @@ void Viewer::mousePressEvent(QMouseEvent *me) {
         _cam->initMoveZ(p);
         _mode = false;
     } else if(me->button()==Qt::RightButton) {
-        /*_light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
         _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
         _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
         _light = glm::normalize(_light);
-        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);*/
         _mode = true;
     } 
 
@@ -554,11 +161,10 @@ void Viewer::mouseMoveEvent(QMouseEvent *me) {
 
     if(_mode) {
         // light mode
-        /*_light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
+        _light[0] = (p[0]-(float)(width()/2))/((float)(width()/2));
         _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
         _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
         _light = glm::normalize(_light);
-        printf("light = (%f, %f, %f)\n", _light[0], _light[1], _light[2]);*/
     } else {
     // camera mode
         _cam->move(p);
@@ -579,26 +185,10 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
     // key r: reload shaders 
     if(ke->key()==Qt::Key_R) {
-        
         _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
-        _gridShader->reload("shaders/grid.vert","shaders/grid.frag");
-        _debugTextureShader->load("shaders/debugTexture.vert","shaders/debugTexture.frag");
-        _normalShader->reload("shaders/normal.vert", "shaders/normal.frag");
-        _postProcessShader->reload("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     }
 
-    if(ke->key()==Qt::Key_P){
-        _noiseDebug = !_noiseDebug;
-    }
-
-    if(ke->key()==Qt::Key_N){
-        _normalDebug = !_normalDebug;
-    }
-
-    if(ke->key()==Qt::Key_S){
-        _shadowMapDebug = !_shadowMapDebug;
-    }
 
 
     // key i: init camera
