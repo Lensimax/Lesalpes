@@ -52,8 +52,6 @@ class Viewer : public QGLWidget {
     void drawQuad();
     void computeHeightMap(GLuint id);
 
-    void createFBOfirstPass();
-    void deleteFBOfirstPass();
 
     Shader *_noiseShader;
     
@@ -67,6 +65,10 @@ class Viewer : public QGLWidget {
 
 
     /* First Pass */
+
+    void createFBOfirstPass();
+    void deleteFBOfirstPass();
+    void initFBOfirstPass();
 
     GLuint _fbofirstPass;
 

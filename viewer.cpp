@@ -85,6 +85,33 @@ void Viewer::createFBOfirstPass(){
     glGenTextures(1, &_normalMap);
 }
 
+void Viewer::initFBOfirstPass(){
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindTexture(GL_TEXTURE_2D,_normalMap);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER,_fbofirstPass);
+
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,_heightMap,0);
+
+    glBindTexture(GL_TEXTURE_2D,_normalMap);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,_normalMap,0);
+
+    /* on desactive le buffer */
+     glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
 void Viewer::deleteFBOfirstPass(){
     glDeleteFramebuffers(1, &_fbofirstPass);
     glDeleteTextures(1, &_normalMap);
@@ -146,6 +173,10 @@ void Viewer::initializeGL() {
 
     createShaders();
     createVAO();
+    createFBOfirstPass();
+
+
+    initFBOfirstPass();
 
 
     // starts the timer 
