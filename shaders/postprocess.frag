@@ -25,5 +25,5 @@ void main() {
 
 
 	float fogFactor = exp(-(pos.z));
-	bufferColor = v*texture(renderedMap, texcoord);
+	bufferColor = texture(renderedMap, texcoord);
 }

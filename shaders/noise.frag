@@ -44,6 +44,8 @@ void main() {
     vec3 motion = vec3(0.); // could be controlled via a global uniform variable
     float p = pnoise(pos+motion.xy,2.0,4.0,0.5,10)+motion.z;
 
+    // p = 1.-smoothstep(0.0,0.2,distance(pos,vec2(0.3,0.3)));
+
     outBuffer = vec4(p*0.5+0.5);
     // outBuffer = vec4(1.0, 0.0,0.0,1.0);
 
