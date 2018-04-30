@@ -189,9 +189,13 @@ void Viewer::sendToPostProcessShader(GLuint id){
     glm::mat4 v   = glm::lookAt(l, glm::vec3(0,0,0), glm::vec3(0,1,0));
     glm::mat4 m   = glm::mat4(1.0);
     glm::mat4 mvp  = p*v*m;
+    glm::mat4 mv  = _cam->mdvMatrix();
 
     /* on envoie la depthMap */
     glUniformMatrix4fv(glGetUniformLocation(id, "mvpDepth"), 1, GL_FALSE, &mvp[0][0]);
+
+    /* on envoie la matrice modele vue */
+    glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE, &(mv[0][0]));
 }
 
 void Viewer::drawFromTheLight(GLuint id){
