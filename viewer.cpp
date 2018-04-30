@@ -79,13 +79,18 @@ void Viewer::deleteShaders(){
     delete _noiseShader; _noiseShader = NULL;
 }
 
-// void Viewer::createFBOfirstPass(){
+void Viewer::createFBOfirstPass(){
+    glGenFramebuffers(1, &_fbofirstPass);
+    glGenTextures(1, &_heightMap);
+    glGenTextures(1, &_normalMap);
+}
 
-// }
+void Viewer::deleteFBOfirstPass(){
+    glDeleteFramebuffers(1, &_fbofirstPass);
+    glDeleteTextures(1, &_normalMap);
+    glDeleteTextures(1, &_heightMap);
 
-// void Viewer::deleteFBOfirstPass(){
-    
-// }
+}
 
 void Viewer::drawQuad(){
     glBindVertexArray(_vaoQuad);

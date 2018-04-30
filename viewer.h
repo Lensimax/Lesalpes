@@ -52,6 +52,9 @@ class Viewer : public QGLWidget {
     void drawQuad();
     void computeHeightMap(GLuint id);
 
+    void createFBOfirstPass();
+    void deleteFBOfirstPass();
+
     Shader *_noiseShader;
     
 
@@ -63,6 +66,12 @@ class Viewer : public QGLWidget {
     GLuint _quad;
 
 
+    /* First Pass */
+
+    GLuint _fbofirstPass;
+
+    GLuint _heightMap;
+    GLuint _normalMap;
 
 
     Camera *_cam;
