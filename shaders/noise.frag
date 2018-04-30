@@ -4,7 +4,7 @@ in vec2 pos;
 
 out vec4 outBuffer;
 
-// layout(location = 0) out vec4 outHeight;
+layout(location = 0) out vec4 outHeight;
 
 vec2 hash(vec2 p) {
     p = vec2( dot(p,vec2(127.1,311.7)),
@@ -51,6 +51,6 @@ void main() {
     outBuffer = vec4(p*0.5+0.5);
     // outBuffer = vec4(1.0, 0.0,0.0,1.0);
 
-    // outHeight = outBuffer;
+    outHeight = outBuffer;
 
 }

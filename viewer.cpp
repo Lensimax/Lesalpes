@@ -22,6 +22,8 @@ Viewer::Viewer(const QGLFormat &format)
 
     _cam  = new Camera(1, glm::vec3(0,0,0), 0);
 
+    debugHeightMap = false;
+    debugNormalMap = false;
 
 
     _timer->setInterval(10);
@@ -73,10 +75,16 @@ void Viewer::deleteVAO() {
 void Viewer::createShaders(){
     _noiseShader = new Shader();
     _noiseShader->load("shaders/noise.vert","shaders/noise.frag");
+    _debugShader = new Shader();
+    _debugShader->load("shaders/debugTextures.vert","shaders/debugTextures.frag");
+    _normalShader = new Shader();
+    _normalShader->load("shaders/normal.vert","shaders/normal.frag");
 }
 
 void Viewer::deleteShaders(){
     delete _noiseShader; _noiseShader = NULL;
+    delete _debugShader; _debugShader = NULL;
+    delete _normalShader; _normalShader = NULL;
 }
 
 void Viewer::createFBOfirstPass(){
@@ -86,20 +94,23 @@ void Viewer::createFBOfirstPass(){
 }
 
 void Viewer::initFBOfirstPass(){
-    glBindTexture(GL_TEXTURE_2D,_heightMap);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
+
+     glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glBindTexture(GL_TEXTURE_2D,_normalMap);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F,GRID_SIZE,GRID_SIZE,0,GL_RGBA,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+    /* on active le frameBufferObject */
+    /* pour associer les textures */
     glBindFramebuffer(GL_FRAMEBUFFER,_fbofirstPass);
 
     glBindTexture(GL_TEXTURE_2D,_heightMap);
@@ -109,7 +120,7 @@ void Viewer::initFBOfirstPass(){
     glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,_normalMap,0);
 
     /* on desactive le buffer */
-     glBindFramebuffer(GL_FRAMEBUFFER,0);
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 void Viewer::deleteFBOfirstPass(){
@@ -133,20 +144,57 @@ void Viewer::computeHeightMap(GLuint id){
     drawQuad();
 }
 
+void Viewer::computeNormalMap(GLuint id){
+    glUseProgram(id);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,_heightMap);
+    glUniform1i(glGetUniformLocation(id, "heightmap"), 0); 
+
+    drawQuad();
+}
+
 void Viewer::paintGL() {
+
+    glBindFramebuffer(GL_FRAMEBUFFER, _fbofirstPass);
+
     glViewport(0,0,GRID_SIZE,GRID_SIZE);
 
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
 
-
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
     computeHeightMap(_noiseShader->id());
+
+    glDrawBuffer(GL_COLOR_ATTACHMENT1);
+    computeNormalMap(_normalShader->id());
     
-    /* on desactive le shader */
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+
+    
+
+
+    if(debugHeightMap){
+        glViewport(0, 0, GRID_SIZE, GRID_SIZE);
+
+        drawDebugTexture(_heightMap);
+    }
+
+    if(debugNormalMap){
+        glViewport(0, 0, GRID_SIZE, GRID_SIZE);
+
+        drawDebugTexture(_normalMap);
+    }
+
+    /* on desactive le shader et FBO */
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(0);
-
-
-
 }
 
 
@@ -245,9 +293,17 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
     // key r: reload shaders 
     if(ke->key()==Qt::Key_R) {
         _noiseShader->reload("shaders/noise.vert","shaders/noise.frag");
+        _debugShader->load("shaders/debugTextures.vert","shaders/debugTextures.frag");
 
     }
 
+    if(ke->key()==Qt::Key_P){
+        debugHeightMap = !debugHeightMap;
+    }
+
+    if(ke->key()==Qt::Key_N){
+        debugNormalMap = !debugNormalMap;
+    }
 
 
     // key i: init camera
@@ -258,5 +314,24 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
 
     updateGL();
+}
+
+
+
+void Viewer::drawDebugTexture(GLuint idTexture){
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glUseProgram(_debugShader->id());
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,idTexture);
+    glUniform1i(glGetUniformLocation(_debugShader->id(), "myTexture"), 0); 
+
+    drawQuad();
+
 }
 

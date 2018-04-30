@@ -50,10 +50,10 @@ class Viewer : public QGLWidget {
  private:
 
     void drawQuad();
-    void computeHeightMap(GLuint id);
 
 
-    Shader *_noiseShader;
+    Shader *_debugShader;
+    void drawDebugTexture(GLuint idTexture);
     
 
     Grid *_grid; // notre grille avec le terrain
@@ -69,11 +69,19 @@ class Viewer : public QGLWidget {
     void createFBOfirstPass();
     void deleteFBOfirstPass();
     void initFBOfirstPass();
+    void computeHeightMap(GLuint id);
+    void computeNormalMap(GLuint id);
 
     GLuint _fbofirstPass;
 
     GLuint _heightMap;
     GLuint _normalMap;
+
+    Shader *_noiseShader;
+    Shader *_normalShader;
+
+    bool debugHeightMap;
+    bool debugNormalMap;
 
 
     Camera *_cam;
