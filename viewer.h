@@ -121,6 +121,8 @@ class Viewer : public QGLWidget {
 
     QTimer *_timer;    // timer that controls the animation
   
+    float _anim;
+
 };
 
 #endif // VIEWER_H

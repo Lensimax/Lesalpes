@@ -20,12 +20,8 @@ void main() {
 	texCoord = position.xy *0.5 + 0.5;
 
 	/* creation de la hauteur */
-	float scale = 1;
-	float height = scale * texture(heightmap,texCoord).z;
+	float height = texture(heightmap,texCoord).z;
 
-	if(texture(heightmap,texCoord).z <= 0.2){
-		height = 0.2;
-	}
 	height = height-0.5;
 	
 	vec4 computedPosition = vec4(position.x, position.y, height, 1);

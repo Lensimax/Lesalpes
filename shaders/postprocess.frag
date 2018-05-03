@@ -16,12 +16,12 @@ void main() {
 	/* profondeur par rapport a la lumière */
 	float lz = texture(shadowMap, shadowCoord.xy).x;
 
-	/*float bias = 0.005;
+	float bias = 0.005;
 	float v = 1.0;
 
 	if(lz + bias < shadowCoord.z){
 		v = 0.2;
-	}*/
+	}
 
 
 	/* Calcul de brouillard */
@@ -30,7 +30,7 @@ void main() {
     float fogFactor = clamp(exp(-pow((length(viewSpace.xyz) * fogDensity), 2)), 0.0, 1.0 );
 	// bufferColor = mix(fogColor, texture(renderedMap, texcoord), fogFactor);
 
-	bufferColor = texture(renderedMap, texcoord);
+	bufferColor = v * texture(renderedMap, texcoord);
 
 
 }

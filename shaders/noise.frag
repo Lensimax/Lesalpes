@@ -4,6 +4,8 @@ in vec2 pos;
 
 out vec4 outBuffer;
 
+uniform float anim;
+
 layout(location = 0) out vec4 outHeight;
 
 vec2 hash(vec2 p) {
@@ -46,7 +48,17 @@ void main() {
 
     // p = 1.-smoothstep(0.0,0.2,distance(pos,vec2(0.3,0.3)));
 
-    outBuffer = vec4(p*0.5+0.5);
+    float scale = 0.5;
+
+    float height = p*0.5+0.5;
+
+    if(height <= 0.2){
+        height = 0.2;
+        height = height - 0.015 + sin(anim * 3 + p) * 0.005;
+    }
+
+
+    outBuffer = vec4(height);
     // outBuffer = vec4(1.0, 0.0,0.0,1.0);
 
     outHeight = outBuffer;

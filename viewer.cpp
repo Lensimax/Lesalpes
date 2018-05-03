@@ -26,6 +26,8 @@ Viewer::Viewer(const QGLFormat &format)
     _cam  = new Camera();
     _light = glm::vec3(0,0,1);
 
+    _anim = 0.0f;
+
 
     _timer->setInterval(10);
     connect(_timer,SIGNAL(timeout()),this,SLOT(updateGL()));
@@ -142,6 +144,8 @@ void Viewer::computePerlinNoise(GLuint id){
     /* on active le shader du bruit de Perlin */
     glUseProgram(id);
 
+    glUniform1f(glGetUniformLocation(id,"anim"),_anim);
+
     /* on indique quelles textures on veut tracer */
     GLenum bufferlist [] = {GL_COLOR_ATTACHMENT0};
     glDrawBuffers(1,bufferlist);
@@ -182,6 +186,10 @@ void Viewer::sendToPostProcessShader(GLuint id){
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _shadowMap);
     glUniform1i(glGetUniformLocation(id, "shadowMap"), 1); 
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, _heightMap);
+    glUniform1i(glGetUniformLocation(id, "heightmap"), 2); 
 
     const float size = 2;
     glm::vec3 l   = glm::transpose(_cam->normalMatrix())*_light;
@@ -297,6 +305,8 @@ void Viewer::paintGL() {
     /* On desactive le shader actif */
     glUseProgram(0);
     glBindVertexArray(0);
+
+    _anim += 0.01f;
 }
 
 void Viewer::loadTexture(GLuint id,const char *filename) {
@@ -556,6 +566,7 @@ void Viewer::mouseMoveEvent(QMouseEvent *me) {
         _light[1] = (p[1]-(float)(height()/2))/((float)(height()/2));
         _light[2] = 1.0f-std::max(fabs(_light[0]),fabs(_light[1]));
         _light = glm::normalize(_light);
+        // printf("light: (%f, %f, %f)\n", _light[0], _light[1], _light[2]);
     } else {
     // camera mode
         _cam->move(p);

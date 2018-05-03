@@ -38,22 +38,29 @@ void main(){
 
 	float height = texture(heightmap, texCoord).z;
 
-	if(height > 0.85){ // en haut
+	if(height > 0.80){ // en haut
+
 		colorTexture = vec4(0.9,0.9,0.9,1);
 		spec = 2.0;
 
-	} else if(height <= 0.85 && height > 0.2){ // au milieu
+	} else if(height <= 0.80 && height > 0.2){ // au milieu
 
 		colorTexture = texture(mountainText, texCoord);
 		spec = 120.0;
 
 	} else { // en bas
-
 		colorTexture = vec4(0.0,0.4,1.0,1.0);
 		spec = 200.0;
+
 	}
 
 	outBuffer = phong(colorTexture.rgb, spec);
+
+	// float percentLight = max(dot(texture(normalMap, texCoord).xyz, lightVector),0);
+
+	// outBuffer = vec4(percentLight,0,0,1);
+
+	// outBuffer = texture(heightmap, texCoord);
 
 	outRendered = outBuffer;
 }
