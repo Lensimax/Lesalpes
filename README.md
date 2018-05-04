@@ -1,22 +1,9 @@
 # LesAlpes
 
-## Rendu
- * Rapport pdf
- * sources (commentées)
+## Pour compiler, il faut OpenGL 3 et qmake  et executer la commande suivante:
 
-## Date Rendu
- - 4 mai (23:59)
- - à romain.vergne@inria.fr
+```qmake && make``` 
 
+## Pour lancer il faut executer la commande:
 
-## Rapport
-
-* page garde
-* description organisation
-	- git
-	- découpage (qui a fait quoi)
-* overview/pipeline/architecture
-* description de chaque passe IMAGES!!!!
-* difficultés
-* ajout dans le futur
-* Ce qui manquait dans le cour pour aller plus loin (feedback) 
+```./lesalpes```

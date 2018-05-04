@@ -29,8 +29,8 @@ void main() {
 	vec4 fogColor = vec4(0.5,0.5,0.5,1);
 	float fogDensity = 0.2;
     float fogFactor = clamp(exp(-pow((length(viewSpace.xyz) * fogDensity), 2)), 0.0, 1.0 );
-	// bufferColor = mix(fogColor, texture(renderedMap, texcoord), fogFactor);
-	
+	//bufferColor = mix(fogColor, texture(renderedMap, texcoord), fogFactor);
+
 	bufferColor = texture(renderedMap, texcoord);
 
 	if(showShadow == 1){
