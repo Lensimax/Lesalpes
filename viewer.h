@@ -121,6 +121,8 @@ class Viewer : public QGLWidget {
     glm::vec3 _light;
     bool _mode;
 
+    int showShadow;
+
 
 
     QTimer *_timer;    // timer that controls the animation

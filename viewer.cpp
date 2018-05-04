@@ -28,6 +28,8 @@ Viewer::Viewer(const QGLFormat &format)
 
     _anim = 0.0f;
 
+    showShadow = 0;
+
 
     _timer->setInterval(10);
     connect(_timer,SIGNAL(timeout()),this,SLOT(updateGL()));
@@ -204,6 +206,8 @@ void Viewer::sendToPostProcessShader(GLuint id){
 
     /* on envoie la matrice modele vue */
     glUniformMatrix4fv(glGetUniformLocation(id,"mdvMat"),1,GL_FALSE, &(mv[0][0]));
+
+    glUniform1i(glGetUniformLocation(id, "showShadow"), showShadow); 
 }
 
 void Viewer::drawFromTheLight(GLuint id){
@@ -288,7 +292,6 @@ void Viewer::paintGL() {
 
     /* affichage de la noise map */
     if(_noiseDebug){
-
         drawDebugMap(_debugTextureShader->id(), _heightMap);
     }    
 
@@ -607,6 +610,11 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
     if(ke->key()==Qt::Key_S){
         _shadowMapDebug = !_shadowMapDebug;
+
+    }
+
+    if(ke->key()==Qt::Key_M){
+        showShadow = (showShadow + 1) %2;
     }
 
 
@@ -625,6 +633,7 @@ void Viewer::printShortcut(){
     N : afficher la normalMap\n\
     P : afficher la heightMap\n\
     S : pour afficher la shadowMap\n\
+    M : pour afficher ou pas les ombres\n\
     A : pour stopper l'animation\n\
     R : pour recharger les shaders\n\
     I : réinitialiser la caméra\n");

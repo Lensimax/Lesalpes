@@ -4,6 +4,7 @@ out vec4 bufferColor;
 
 uniform sampler2D renderedMap;
 uniform sampler2D shadowMap;
+uniform int showShadow;
 
 in vec2 texcoord;
 in vec3 pos;
@@ -29,8 +30,12 @@ void main() {
 	float fogDensity = 0.2;
     float fogFactor = clamp(exp(-pow((length(viewSpace.xyz) * fogDensity), 2)), 0.0, 1.0 );
 	// bufferColor = mix(fogColor, texture(renderedMap, texcoord), fogFactor);
-
-	// bufferColor = v * texture(renderedMap, texcoord);
-
+	
 	bufferColor = texture(renderedMap, texcoord);
+
+	if(showShadow == 1){
+		bufferColor = v * texture(renderedMap, texcoord);
+	}
+
+
 }
