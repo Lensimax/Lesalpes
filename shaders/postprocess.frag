@@ -30,7 +30,7 @@ void main() {
     float fogFactor = clamp(exp(-pow((length(viewSpace.xyz) * fogDensity), 2)), 0.0, 1.0 );
 	// bufferColor = mix(fogColor, texture(renderedMap, texcoord), fogFactor);
 
-	bufferColor = v * texture(renderedMap, texcoord);
+	// bufferColor = v * texture(renderedMap, texcoord);
 
-
+	bufferColor = texture(renderedMap, texcoord);
 }

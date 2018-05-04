@@ -375,6 +375,7 @@ void Viewer::initializeGL() {
     initFBOShadowMap();
 
 
+    printShortcut();
 
     // starts the timer 
     _timer->start();
@@ -617,5 +618,15 @@ void Viewer::keyPressEvent(QKeyEvent *ke) {
 
 
     updateGL();
+}
+
+void Viewer::printShortcut(){
+    printf("Appuyer sur les touches suivantes pour les effets désirés:\n\
+    N : afficher la normalMap\n\
+    P : afficher la heightMap\n\
+    S : pour afficher la shadowMap\n\
+    A : pour stopper l'animation\n\
+    R : pour recharger les shaders\n\
+    I : réinitialiser la caméra\n");
 }
 

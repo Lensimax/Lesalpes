@@ -59,6 +59,8 @@ class Viewer : public QGLWidget {
     void deleteFBOShadowMap();
 
 
+
+
  private:
 
     void loadTexture(GLuint id,const char *filename);
@@ -74,6 +76,8 @@ class Viewer : public QGLWidget {
     void drawFromTheLight(GLuint id);
     void computePerlinNoise(GLuint id);
     void computeNormalMap(GLuint id);
+
+    void printShortcut();
     
 
     Grid *_grid; // notre grille avec le terrain
